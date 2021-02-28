@@ -253,18 +253,20 @@ def run_triplets_model(train_triplets, val_triplets, output_path, model_name='di
               output_path=output_path)
 
 def main():
-    max_num_doc = 50
-    val_samples = 10
     parser = argparse.ArgumentParser(description='Run treccar experiments')
     parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
     parser.add_argument('-tin', '--train_input', default='train/base.train.cbor')
     parser.add_argument('-tp', '--train_paratext', default='train/train_paratext/train_paratext.tsv')
     parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models')
+    parser.add_argument('-md', '--max_doc', type=int, default=50)
+    parser.add_argument('-vs', '--val_samples', type=int, default=25)
     args = parser.parse_args()
     input_dir = args.input_dir
     train_in = args.train_input
     train_pt = args.train_paratext
     output_path = args.output_model_path
+    max_num_doc = args.max_doc
+    val_samples = args.val_samples
     train_art_qrels = input_dir + '/' + train_in + '-article.qrels'
     train_top_qrels = input_dir + '/' + train_in + '-toplevel.qrels'
     train_hier_qrels = input_dir + '/' + train_in + '-hierarchical.qrels'
