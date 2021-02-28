@@ -29,6 +29,7 @@ class ClusterEvaluator(SentenceEvaluator):
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         rand_scores = []
+        model.cpu()
         for i in trange(len(self.passages), desc="Evaluating on test", smoothing=0.05):
             print('Model device: '+str(model.device))
             passages_to_cluster = [p for p in self.passages[i] if len(p)>0]
