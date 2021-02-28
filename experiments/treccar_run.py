@@ -176,6 +176,12 @@ def prepare_triples_data(train_cluster_data, val_cluster_data):
 def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, lambda_val=200.0,
                                model_name='distilbert-base-uncased', train_batch_size=1, num_epochs=1, out_features=256,
                                eval_steps=20):
+    if torch.cuda.is_available():
+        print('CUDA is available')
+        device = torch.device('cuda')
+    else:
+        print('Using CPU')
+        device = torch.device('cpu')
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
@@ -191,7 +197,7 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
 
     model = SentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
     # model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-    loss_model = BBClusterLossModel(model=model, lambda_val=lambda_val)
+    loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val).to(device)
     # reg_loss_model = ClusterDistLossModel(model=model)
 
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)

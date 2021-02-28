@@ -46,7 +46,7 @@ class OptimCluster(torch.autograd.Function):
 
 class BBClusterLossModel(nn.Module):
 
-    def __init__(self, model: SentenceTransformer, lambda_val: float = 200.0):
+    def __init__(self, model: SentenceTransformer, device, lambda_val: float = 200.0):
 
         super(BBClusterLossModel, self).__init__()
         self.model = model
@@ -66,12 +66,6 @@ class BBClusterLossModel(nn.Module):
 
         # passage_features will be a list of feature dicts -> [all 1st passages in batch, all 2nd passages in batch, ...]
         # labels shape: batch X maxpsg
-        if torch.cuda.is_available():
-            print('CUDA is available')
-            device = torch.device('cuda')
-        else:
-            print('Using CPU')
-            device = torch.device('cpu')
         batch_size = labels.shape[0]
         n = labels.shape[1]
         ks = [torch.unique(labels[i]).numel() for i in range(batch_size)]
