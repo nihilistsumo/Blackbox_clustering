@@ -32,7 +32,7 @@ class ClusterEvaluator(SentenceEvaluator):
         model_device = model.device
         if next(model.parameters()).is_cuda:
             model.cpu()
-        for i in trange(len(self.passages), desc="Evaluating on test", smoothing=0.05):
+        for i in trange(len(self.passages), desc="Evaluating on val", smoothing=0.05):
             passages_to_cluster = [p for p in self.passages[i] if len(p)>0]
             true_label = self.labels[i][:len(passages_to_cluster)]
             doc_features = model.tokenize(passages_to_cluster)
@@ -42,7 +42,7 @@ class ClusterEvaluator(SentenceEvaluator):
             cluster_label = cl.fit_predict(embeddings_dist_mat.detach().numpy())
             rand_scores.append(adjusted_rand_score(true_label.numpy(), cluster_label))
         mean_rand = np.mean(np.array(rand_scores))
-        print("RAND: %.5f" % mean_rand, flush=True)
+        print("\nRAND: %.5f\n" % mean_rand, flush=True)
         if torch.cuda.is_available():
             model.to(model_device)
         return mean_rand
