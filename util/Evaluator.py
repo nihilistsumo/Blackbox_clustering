@@ -30,10 +30,12 @@ class ClusterEvaluator(SentenceEvaluator):
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         rand_scores = []
         for i in trange(len(self.passages), desc="Evaluating on test", smoothing=0.05):
+            print('Model device: '+str(model.device))
+            print('Labels device: '+str(self.labels.device))
             passages_to_cluster = [p for p in self.passages[i] if len(p)>0]
             true_label = self.labels[i][:len(passages_to_cluster)]
-            doc_features = model.tokenize(passages_to_cluster).cpu()
-            doc_embeddings = model(doc_features)['sentence_embedding'].cpu()
+            doc_features = model.tokenize(passages_to_cluster)
+            doc_embeddings = model(doc_features)['sentence_embedding']
             embeddings_dist_mat = self.euclid_dist(doc_embeddings)
             cl = AgglomerativeClustering(n_clusters=torch.unique(true_label).numel(), affinity='precomputed', linkage='average')
             cluster_label = cl.fit_predict(embeddings_dist_mat.detach().numpy())
