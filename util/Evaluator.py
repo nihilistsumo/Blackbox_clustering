@@ -29,7 +29,9 @@ class ClusterEvaluator(SentenceEvaluator):
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         rand_scores = []
-        model.cpu()
+        model_device = model.device
+        if next(model.parameters()).is_cuda:
+            model.cpu()
         for i in trange(len(self.passages), desc="Evaluating on test", smoothing=0.05):
             print('Model device: '+str(model.device))
             passages_to_cluster = [p for p in self.passages[i] if len(p)>0]
@@ -42,4 +44,6 @@ class ClusterEvaluator(SentenceEvaluator):
             rand_scores.append(adjusted_rand_score(true_label.numpy(), cluster_label))
         mean_rand = np.mean(np.array(rand_scores))
         print("RAND: %.5f" % mean_rand, flush=True)
+        if torch.cuda.is_available():
+            model.to(model_device)
         return mean_rand
