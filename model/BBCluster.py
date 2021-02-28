@@ -74,6 +74,9 @@ class BBClusterLossModel(nn.Module):
         # embeddings shape: batch X maxpsg X emb
         embeddings = torch.stack([self.model(passages)['sentence_embedding'] for passages in passage_features], dim=1)
         embeddings_dist_mats = torch.stack([euclid_dist(embeddings[i]) for i in range(batch_size)])
+        mean_similar_dist = (embeddings_dist_mats * true_adjacency_mats).sum() / true_adjacency_mats.sum()
+        mean_dissimilar_dist = (embeddings_dist_mats * (1.0 - true_adjacency_mats)).sum() / (
+                    1 - true_adjacency_mats).sum()
         adjacency_mats = self.optim.apply(embeddings_dist_mats, self.lambda_val, ks)
 
         p = torch.sum(true_adjacency_mats, dim=(1,2)) - n
@@ -82,8 +85,6 @@ class BBClusterLossModel(nn.Module):
 
         weighted_err_mats = adjacency_wt_mats * (adjacency_mats * (1.0 - true_adjacency_mats) + (1.0 - adjacency_mats) * true_adjacency_mats)
         weighted_err_mean = weighted_err_mats.mean(dim=0).sum()
-        mean_similar_dist = (embeddings_dist_mats * true_adjacency_mats).sum()/true_adjacency_mats.sum()
-        mean_dissimilar_dist = (embeddings_dist_mats * (1.0 - true_adjacency_mats)).sum()/(1-true_adjacency_mats).sum()
 
         #pprint('Weighted err mat mean: %.5f, mean similar dist: %.5f, mean dissimilar dist: %.5f, reg value: %.5f' %
         #       (weighted_err_mean, mean_similar_dist, mean_dissimilar_dist, 20*(mean_similar_dist/mean_dissimilar_dist)))
