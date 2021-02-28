@@ -30,19 +30,17 @@ class OptimCluster(torch.autograd.Function):
     def forward(ctx, batch_pairscore_matrix, lambda_val, num_clusters):
         ctx.lambda_val = lambda_val
         ctx.num_clusters = num_clusters
-        ctx.batch_pairscore_matrix = batch_pairscore_matrix
+        ctx.batch_pairscore_matrix = batch_pairscore_matrix.detach().cpu().numpy()
         ctx.batch_adj_matrix, _ = clustering(ctx.batch_pairscore_matrix, ctx.num_clusters)
-        return ctx.batch_adj_matrix.float()
+        return ctx.batch_adj_matrix.float().to(batch_pairscore_matrix.device)
 
     @staticmethod
     def backward(ctx, grad_output):
-        grad_output_numpy = grad_output.numpy()
-        batch_pairscore_matrix_numpy = ctx.batch_pairscore_matrix.cpu().numpy()
-        batch_pairscore_matrix_prime_numpy = np.maximum(batch_pairscore_matrix_numpy + ctx.lambda_val * grad_output_numpy, 0.0)
-        batch_pairscore_matrix_prime = torch.from_numpy(batch_pairscore_matrix_prime_numpy)
+        grad_output_numpy = grad_output.detach().cpu().numpy()
+        batch_pairscore_matrix_prime = np.maximum(ctx.batch_pairscore_matrix + ctx.lambda_val * grad_output_numpy, 0.0)
         better_batch_adj_matrix, _ = clustering(batch_pairscore_matrix_prime, ctx.num_clusters)
         gradient = -(ctx.batch_adj_matrix - better_batch_adj_matrix) / ctx.lambda_val
-        return gradient, None, None
+        return torch.from_numpy(gradient.astype(np.float32)).to(grad_output.device), None, None
 
 class BBClusterLossModel(nn.Module):
 
