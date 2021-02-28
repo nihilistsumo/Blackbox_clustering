@@ -203,6 +203,7 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     # train_dataloader2 = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
+    print('Evaluator device: '+str(evaluator.device))
 
     warmup_steps = int(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data
 
