@@ -31,7 +31,6 @@ class ClusterEvaluator(SentenceEvaluator):
         rand_scores = []
         for i in trange(len(self.passages), desc="Evaluating on test", smoothing=0.05):
             print('Model device: '+str(model.device))
-            print('Labels device: '+str(self.labels.device))
             passages_to_cluster = [p for p in self.passages[i] if len(p)>0]
             true_label = self.labels[i][:len(passages_to_cluster)]
             doc_features = model.tokenize(passages_to_cluster)
