@@ -74,8 +74,8 @@ class BBClusterLossModel(nn.Module):
         # embeddings shape: batch X maxpsg X emb
         embeddings = torch.stack([self.model(passages)['sentence_embedding'] for passages in passage_features], dim=1)
         embeddings_dist_mats = torch.stack([euclid_dist(embeddings[i]) for i in range(batch_size)])
-        print('embedding dist mats device: '+str(embeddings_dist_mats.device))
-        print('true adj device: '+str(true_adjacency_mats.device))
+        #print('embedding dist mats device: '+str(embeddings_dist_mats.device))
+        #print('true adj device: '+str(true_adjacency_mats.device))
         mean_similar_dist = (embeddings_dist_mats * true_adjacency_mats).sum() / true_adjacency_mats.sum()
         mean_dissimilar_dist = (embeddings_dist_mats * (1.0 - true_adjacency_mats)).sum() / (
                     1 - true_adjacency_mats).sum()
@@ -94,5 +94,5 @@ class BBClusterLossModel(nn.Module):
         loss = weighted_err_mean + 2.5*(mean_similar_dist - mean_dissimilar_dist)
         #loss = 20*(mean_similar_dist/mean_dissimilar_dist)
         #pprint('Loss: %.5f' % loss.item())
-        print('Loss: '+str(loss.device))
+        #print('Loss: '+str(loss.device))
         return loss
