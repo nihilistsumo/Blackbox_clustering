@@ -11,13 +11,14 @@ def euclid_dist(x):
     return dist_mat
 
 def clustering(batch_pairscore_matrix, num_clusters):
-    batch_adjacency_matrix = torch.zeros(batch_pairscore_matrix.shape)
+    batch_adjacency_matrix = np.zeros(batch_pairscore_matrix.shape)
     num_batch = batch_pairscore_matrix.shape[0]
     clustering_labels = []
     for i in range(num_batch):
         cl = AgglomerativeClustering(n_clusters=num_clusters[i], affinity='precomputed', linkage='average')
         cluster_label = cl.fit_predict(batch_pairscore_matrix[i])
-        clustering_labels.append(torch.from_numpy(cluster_label))
+        #clustering_labels.append(torch.from_numpy(cluster_label))
+        clustering_labels.append(cluster_label)
         for m in range(cluster_label.shape[0]):
             for n in range(cluster_label.shape[0]):
                 if cluster_label[m] == cluster_label[n]:
@@ -31,8 +32,8 @@ class OptimCluster(torch.autograd.Function):
         ctx.lambda_val = lambda_val
         ctx.num_clusters = num_clusters
         ctx.batch_pairscore_matrix = batch_pairscore_matrix.detach().cpu().numpy()
-        ctx.batch_adj_matrix, _ = clustering(ctx.batch_pairscore_matrix, ctx.num_clusters)
-        return ctx.batch_adj_matrix.float().to(batch_pairscore_matrix.device)
+        batch_adj_matrix, _ = clustering(ctx.batch_pairscore_matrix, ctx.num_clusters)
+        return torch.from_numpy(batch_adj_matrix).float().to(batch_pairscore_matrix.device)
 
     @staticmethod
     def backward(ctx, grad_output):
