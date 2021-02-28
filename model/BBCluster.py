@@ -92,7 +92,7 @@ class BBClusterLossModel(nn.Module):
         #pprint('Weighted err mat mean: %.5f, mean similar dist: %.5f, mean dissimilar dist: %.5f, reg value: %.5f' %
         #       (weighted_err_mean, mean_similar_dist, mean_dissimilar_dist, 20*(mean_similar_dist/mean_dissimilar_dist)))
 
-        loss = weighted_err_mean + 2.5*(mean_similar_dist - mean_dissimilar_dist).to(self.device)
+        loss = weighted_err_mean + 2.5*(mean_similar_dist - mean_dissimilar_dist).cpu()
         #loss = 20*(mean_similar_dist/mean_dissimilar_dist)
         #pprint('Loss: %.5f' % loss.item())
         return loss
