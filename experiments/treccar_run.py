@@ -182,7 +182,6 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
     else:
         print('Using CPU')
         device = torch.device('cpu')
-    train_cluster_data = train_cluster_data.to(device)
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
