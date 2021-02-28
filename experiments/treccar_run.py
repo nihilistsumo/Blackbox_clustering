@@ -253,8 +253,8 @@ def run_triplets_model(train_triplets, val_triplets, output_path, model_name='di
               output_path=output_path)
 
 def main():
-    max_num_doc = 75
-    val_samples = 50
+    max_num_doc = 50
+    val_samples = 10
     parser = argparse.ArgumentParser(description='Run treccar experiments')
     parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
     parser.add_argument('-tin', '--train_input', default='train/base.train.cbor')
