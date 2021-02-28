@@ -249,15 +249,20 @@ def run_triplets_model(train_triplets, val_triplets, output_path, model_name='di
 def main():
     max_num_doc = 75
     val_samples = 50
-    train_art_qrels = '/home/sk1105/sumanta/trec_dataset/train/base.train.cbor-article.qrels'
-    train_top_qrels = '/home/sk1105/sumanta/trec_dataset/train/base.train.cbor-toplevel.qrels'
-    train_hier_qrels = '/home/sk1105/sumanta/trec_dataset/train/base.train.cbor-hierarchical.qrels'
-    train_paratext = '/home/sk1105/sumanta/trec_dataset/train/train_paratext/train_paratext.tsv'
-    test_art_qrels = '/home/sk1105/sumanta/trec_dataset/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-article.qrels'
-    test_top_qrels = '/home/sk1105/sumanta/trec_dataset/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-toplevel.qrels'
-    test_hier_qrels = '/home/sk1105/sumanta/trec_dataset/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-hierarchical.qrels'
-    test_paratext = '/home/sk1105/sumanta/trec_dataset/benchmarkY1/benchmarkY1-test-nodup/by1test_paratext/by1test_paratext.tsv'
-    output_path = '/home/sk1105/sumanta/bb_cluster_models'
+    parser = argparse.ArgumentParser(description='Run treccar experiments')
+    parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
+    parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models')
+    args = parser.parse_args()
+    input_dir = args.input_dir
+    output_path = args.output_model_path
+    train_art_qrels = input_dir + '/train/base.train.cbor-article.qrels'
+    train_top_qrels = input_dir + '/train/base.train.cbor-toplevel.qrels'
+    train_hier_qrels = input_dir + '/train/base.train.cbor-hierarchical.qrels'
+    train_paratext = input_dir + '/train/train_paratext/train_paratext.tsv'
+    test_art_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-article.qrels'
+    test_top_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-toplevel.qrels'
+    test_hier_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-hierarchical.qrels'
+    test_paratext = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/by1test_paratext/by1test_paratext.tsv'
 
     train_top_cluster_data, train_hier_cluster_data, val_top_cluster_data, val_hier_cluster_data, \
     test_top_cluster_data, test_hier_cluster_data = prepare_cluster_data(train_art_qrels, train_top_qrels, train_hier_qrels,
