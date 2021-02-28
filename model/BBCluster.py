@@ -16,7 +16,7 @@ def clustering(batch_pairscore_matrix, num_clusters):
     clustering_labels = []
     for i in range(num_batch):
         cl = AgglomerativeClustering(n_clusters=num_clusters[i], affinity='precomputed', linkage='average')
-        cluster_label = cl.fit_predict(batch_pairscore_matrix[i])
+        cluster_label = cl.fit_predict(batch_pairscore_matrix[i].cpu())
         clustering_labels.append(torch.from_numpy(cluster_label))
         for m in range(cluster_label.shape[0]):
             for n in range(cluster_label.shape[0]):
