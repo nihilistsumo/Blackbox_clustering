@@ -251,14 +251,18 @@ def main():
     val_samples = 50
     parser = argparse.ArgumentParser(description='Run treccar experiments')
     parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
+    parser.add_argument('-tin', '--train_input', default='train/base.train.cbor')
+    parser.add_argument('-tp', '--train_paratext', default='train/train_paratext/train_paratext.tsv')
     parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models')
     args = parser.parse_args()
     input_dir = args.input_dir
+    train_in = args.train_input
+    train_pt = args.train_paratext
     output_path = args.output_model_path
-    train_art_qrels = input_dir + '/train/base.train.cbor-article.qrels'
-    train_top_qrels = input_dir + '/train/base.train.cbor-toplevel.qrels'
-    train_hier_qrels = input_dir + '/train/base.train.cbor-hierarchical.qrels'
-    train_paratext = input_dir + '/train/train_paratext/train_paratext.tsv'
+    train_art_qrels = input_dir + '/' + train_in + '-article.qrels'
+    train_top_qrels = input_dir + '/' + train_in + '-toplevel.qrels'
+    train_hier_qrels = input_dir + '/' + train_in + '-hierarchical.qrels'
+    train_paratext = input_dir + '/' + train_pt
     test_art_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-article.qrels'
     test_top_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-toplevel.qrels'
     test_hier_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-hierarchical.qrels'
