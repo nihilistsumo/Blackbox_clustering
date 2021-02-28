@@ -174,7 +174,7 @@ def prepare_triples_data(train_cluster_data, val_cluster_data):
     return train_all25_triples, val_all25_triples
 
 def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, lambda_val=200.0,
-                               model_name='distilbert-base-uncased', train_batch_size=4, num_epochs=1, out_features=256,
+                               model_name='distilbert-base-uncased', train_batch_size=1, num_epochs=1, out_features=256,
                                eval_steps=20):
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
