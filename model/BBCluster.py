@@ -32,8 +32,8 @@ class OptimCluster(torch.autograd.Function):
         ctx.lambda_val = lambda_val
         ctx.num_clusters = num_clusters
         ctx.batch_pairscore_matrix = batch_pairscore_matrix.detach().cpu().numpy()
-        batch_adj_matrix, _ = clustering(ctx.batch_pairscore_matrix, ctx.num_clusters)
-        return torch.from_numpy(batch_adj_matrix).float().to(batch_pairscore_matrix.device)
+        ctx.batch_adj_matrix, _ = clustering(ctx.batch_pairscore_matrix, ctx.num_clusters)
+        return torch.from_numpy(ctx.batch_adj_matrix).float().to(batch_pairscore_matrix.device)
 
     @staticmethod
     def backward(ctx, grad_output):
