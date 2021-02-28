@@ -66,10 +66,16 @@ class BBClusterLossModel(nn.Module):
 
         # passage_features will be a list of feature dicts -> [all 1st passages in batch, all 2nd passages in batch, ...]
         # labels shape: batch X maxpsg
+        if torch.cuda.is_available():
+            print('CUDA is available')
+            device = torch.device('cuda')
+        else:
+            print('Using CPU')
+            device = torch.device('cpu')
         batch_size = labels.shape[0]
         n = labels.shape[1]
         ks = [torch.unique(labels[i]).numel() for i in range(batch_size)]
-        true_adjacency_mats = torch.stack([self.true_adj_mat(labels[i]) for i in range(batch_size)])
+        true_adjacency_mats = torch.stack([self.true_adj_mat(labels[i]) for i in range(batch_size)]).to(device)
 
         # embeddings shape: batch X maxpsg X emb
         embeddings = torch.stack([self.model(passages)['sentence_embedding'] for passages in passage_features], dim=1)
@@ -79,7 +85,7 @@ class BBClusterLossModel(nn.Module):
         mean_similar_dist = (embeddings_dist_mats * true_adjacency_mats).sum() / true_adjacency_mats.sum()
         mean_dissimilar_dist = (embeddings_dist_mats * (1.0 - true_adjacency_mats)).sum() / (
                     1 - true_adjacency_mats).sum()
-        adjacency_mats = self.optim.apply(embeddings_dist_mats, self.lambda_val, ks)
+        adjacency_mats = self.optim.apply(embeddings_dist_mats, self.lambda_val, ks).to(device)
 
         p = torch.sum(true_adjacency_mats, dim=(1,2)) - n
         adjacency_wt_mats = torch.stack([(1.0 - true_adjacency_mats[i])*p[i]/(n*(n-1)) +
