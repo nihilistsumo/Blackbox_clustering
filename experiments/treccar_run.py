@@ -257,7 +257,7 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
 
     # Train the model
     for e in range(num_epochs):
-        lambda_val_curr = lambda_val + math.exp(lambda_increment * e)
+        lambda_val_curr = lambda_val + lambda_increment * e
         loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val_curr, reg_const=reg)
         model.fit(train_objectives=[(train_dataloader, loss_model)],
                   evaluator=evaluator,
