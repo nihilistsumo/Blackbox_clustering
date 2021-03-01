@@ -242,7 +242,7 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
 
     model = SentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
     # model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-    loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg)
+    #loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg)
     # reg_loss_model = ClusterDistLossModel(model=model)
 
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
@@ -257,15 +257,15 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
 
     # Train the model
     for e in range(num_epochs):
-        lambda_val = lambda_val + lambda_increment * e
-        loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg)
+        lambda_val_curr = lambda_val + lambda_increment * e
+        loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val_curr, reg_const=reg)
         model.fit(train_objectives=[(train_dataloader, loss_model)],
                   evaluator=evaluator,
                   epochs=per_lambda_num_epochs,
                   evaluation_steps=eval_steps,
                   warmup_steps=warmup_steps,
                   output_path=output_path)
-        print('Epoch: %3d, lambda: %.2f' % (e, lambda_val))
+        print('Epoch: %3d, lambda: %.2f' % (e, lambda_val_curr))
 
 def run_triplets_model(train_triplets, val_triplets, output_path, train_batch_size, eval_steps, num_epochs,
                        model_name='distilbert-base-uncased', out_features=256):
