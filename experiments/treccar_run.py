@@ -177,7 +177,7 @@ def prepare_triples_data(train_cluster_data, val_cluster_data):
     return train_all25_triples, val_all25_triples
 
 def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, train_batch_size, eval_steps,
-                               num_epochs, lambda_val, model_name='distilbert-base-uncased', out_features=256):
+                               num_epochs, lambda_val, reg, model_name='distilbert-base-uncased', out_features=256):
     if torch.cuda.is_available():
         print('CUDA is available')
         device = torch.device('cuda')
@@ -199,7 +199,7 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
 
     model = SentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
     # model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-    loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val)
+    loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg)
     # reg_loss_model = ClusterDistLossModel(model=model)
 
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
@@ -261,6 +261,7 @@ def main():
     parser.add_argument('-tp', '--train_paratext', default='train/train_paratext/train_paratext.tsv')
     parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models/temp_model')
     parser.add_argument('-lm', '--lambda_val', type=float, default=200.0)
+    parser.add_argument('-rg', '--reg_const', type=float, default=2.5)
     parser.add_argument('-md', '--max_doc', type=int, default=50)
     parser.add_argument('-vs', '--val_samples', type=int, default=25)
     parser.add_argument('-bt', '--batch_size', type=int, default=1)
@@ -272,6 +273,7 @@ def main():
     train_pt = args.train_paratext
     output_path = args.output_model_path
     lambda_val = args.lambda_val
+    reg = args.reg_const
     max_num_doc = args.max_doc
     val_samples = args.val_samples
     batch_size = args.batch_size
@@ -291,7 +293,8 @@ def main():
                                                                          train_paratext, test_art_qrels, test_top_qrels,
                                                                          test_hier_qrels, test_paratext, max_num_doc,
                                                                          val_samples)
-    run_fixed_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs, lambda_val)
+    run_fixed_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs,
+                               lambda_val, reg)
 
 if __name__ == '__main__':
     main()

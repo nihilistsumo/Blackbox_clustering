@@ -45,11 +45,12 @@ class OptimCluster(torch.autograd.Function):
 
 class BBClusterLossModel(nn.Module):
 
-    def __init__(self, model: SentenceTransformer, device, lambda_val: float = 200.0):
+    def __init__(self, model: SentenceTransformer, device, lambda_val: float, reg_const: float):
 
         super(BBClusterLossModel, self).__init__()
         self.model = model
         self.lambda_val = lambda_val
+        self.reg = reg_const
         self.optim = OptimCluster()
         self.device = device
 
@@ -91,7 +92,7 @@ class BBClusterLossModel(nn.Module):
         #pprint('Weighted err mat mean: %.5f, mean similar dist: %.5f, mean dissimilar dist: %.5f, reg value: %.5f' %
         #       (weighted_err_mean, mean_similar_dist, mean_dissimilar_dist, 20*(mean_similar_dist/mean_dissimilar_dist)))
 
-        loss = weighted_err_mean + 2.5*(mean_similar_dist - mean_dissimilar_dist)
+        loss = weighted_err_mean + self.reg*(mean_similar_dist - mean_dissimilar_dist)
         #loss = 20*(mean_similar_dist/mean_dissimilar_dist)
         #pprint('Loss: %.5f' % loss.item())
         #print('Loss: '+str(loss.device))
