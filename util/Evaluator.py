@@ -41,7 +41,7 @@ class ClusterEvaluator(SentenceEvaluator):
             embeddings_dist_mat = self.euclid_dist(doc_embeddings)
             cl = AgglomerativeClustering(n_clusters=len(set(true_label)), affinity='precomputed', linkage='average')
             cluster_label = cl.fit_predict(embeddings_dist_mat.detach().numpy())
-            rand_scores.append(adjusted_rand_score(true_label.numpy(), cluster_label))
+            rand_scores.append(adjusted_rand_score(np.array(true_label), cluster_label))
         mean_rand = np.mean(np.array(rand_scores))
         print("\nRAND: %.5f\n" % mean_rand, flush=True)
         if torch.cuda.is_available():
