@@ -39,7 +39,7 @@ class ClusterEvaluator(SentenceEvaluator):
             doc_features = model.tokenize(passages_to_cluster)
             doc_embeddings = model(doc_features)['sentence_embedding']
             embeddings_dist_mat = self.euclid_dist(doc_embeddings)
-            cl = AgglomerativeClustering(n_clusters=torch.unique(true_label).numel(), affinity='precomputed', linkage='average')
+            cl = AgglomerativeClustering(n_clusters=len(set(true_label)), affinity='precomputed', linkage='average')
             cluster_label = cl.fit_predict(embeddings_dist_mat.detach().numpy())
             rand_scores.append(adjusted_rand_score(true_label.numpy(), cluster_label))
         mean_rand = np.mean(np.array(rand_scores))
