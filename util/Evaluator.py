@@ -33,8 +33,9 @@ class ClusterEvaluator(SentenceEvaluator):
         if next(model.parameters()).is_cuda:
             model.cpu()
         for i in trange(len(self.passages), desc="Evaluating on val", smoothing=0.05):
-            passages_to_cluster = [p for p in self.passages[i] if len(p)>0]
-            true_label = self.labels[i][:len(passages_to_cluster)]
+            passage_data = [(self.passages[i][p], self.labels[i][p]) for p in range(len(self.passages[i])) if len(self.passages[i][p])>0]
+            passages_to_cluster = [p[0] for p in passage_data]
+            true_label = [p[1] for p in passage_data]
             doc_features = model.tokenize(passages_to_cluster)
             doc_embeddings = model(doc_features)['sentence_embedding']
             embeddings_dist_mat = self.euclid_dist(doc_embeddings)
