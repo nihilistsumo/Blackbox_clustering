@@ -33,7 +33,7 @@ class ClusterEvaluator(SentenceEvaluator):
         if next(model.parameters()).is_cuda:
             model.cpu()
         for i in trange(len(self.passages), desc="Evaluating on val", smoothing=0.05):
-            passages_to_cluster = [self.passages[i][p] for p in range(len(self.passages)) if len(self.passages[i][p])>0]
+            passages_to_cluster = [self.passages[i][p] for p in range(len(self.passages[i])) if len(self.passages[i][p])>0]
             true_label = self.labels[i][:len(passages_to_cluster)]
             doc_features = model.tokenize(passages_to_cluster)
             doc_embeddings = model(doc_features)['sentence_embedding']
