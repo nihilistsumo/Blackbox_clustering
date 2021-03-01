@@ -219,6 +219,54 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
               warmup_steps=warmup_steps,
               output_path=output_path)
 
+def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, train_batch_size, eval_steps,
+                               num_epochs, lambda_val, lambda_increment, reg, model_name='distilbert-base-uncased', out_features=256):
+    if torch.cuda.is_available():
+        print('CUDA is available')
+        device = torch.device('cuda')
+    else:
+        print('Using CPU')
+        device = torch.device('cpu')
+    ### Configure sentence transformers for training and train on the provided dataset
+    # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
+    word_embedding_model = models.Transformer(model_name)
+
+    # Apply mean pooling to get one fixed sized sentence vector
+    pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
+                                   pooling_mode_mean_tokens=True,
+                                   pooling_mode_cls_token=False,
+                                   pooling_mode_max_tokens=False)
+
+    doc_dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=out_features,
+                                   activation_function=nn.Tanh())
+
+    model = SentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
+    # model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+    loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg)
+    # reg_loss_model = ClusterDistLossModel(model=model)
+
+    train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
+    # train_dataloader2 = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
+    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
+
+    per_lambda_num_epochs = 1
+    warmup_steps = int(len(train_dataloader) * per_lambda_num_epochs * 0.1)  # 10% of train data
+
+    print("Raw BERT embedding performance")
+    evaluator(model, output_path)
+
+    # Train the model
+    for e in range(num_epochs):
+        lambda_val = lambda_val + lambda_increment * e
+        loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg)
+        model.fit(train_objectives=[(train_dataloader, loss_model)],
+                  evaluator=evaluator,
+                  epochs=per_lambda_num_epochs,
+                  evaluation_steps=eval_steps,
+                  warmup_steps=warmup_steps,
+                  output_path=output_path)
+        print('Epoch: %3d, lambda: %.2f' % (e, lambda_val))
+
 def run_triplets_model(train_triplets, val_triplets, output_path, train_batch_size, eval_steps, num_epochs,
                        model_name='distilbert-base-uncased', out_features=256):
     ### Configure sentence transformers for training and train on the provided dataset
@@ -261,24 +309,28 @@ def main():
     parser.add_argument('-tp', '--train_paratext', default='train/train_paratext/train_paratext.tsv')
     parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models/temp_model')
     parser.add_argument('-lm', '--lambda_val', type=float, default=200.0)
+    parser.add_argument('-li', '--lambda_inc', type=float, default=10.0)
     parser.add_argument('-rg', '--reg_const', type=float, default=2.5)
     parser.add_argument('-md', '--max_doc', type=int, default=50)
     parser.add_argument('-vs', '--val_samples', type=int, default=25)
     parser.add_argument('-bt', '--batch_size', type=int, default=1)
     parser.add_argument('-ep', '--num_epoch', type=int, default=1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
+    parser.add_argument('-ex', '--exp_type', default='bbfix')
     args = parser.parse_args()
     input_dir = args.input_dir
     train_in = args.train_input
     train_pt = args.train_paratext
     output_path = args.output_model_path
     lambda_val = args.lambda_val
+    lambda_increment = args.lambda_inc
     reg = args.reg_const
     max_num_doc = args.max_doc
     val_samples = args.val_samples
     batch_size = args.batch_size
     epochs = args.num_epoch
     eval_steps = args.eval_steps
+    experiment_type = args.exp_type
     train_art_qrels = input_dir + '/' + train_in + '-article.qrels'
     train_top_qrels = input_dir + '/' + train_in + '-toplevel.qrels'
     train_hier_qrels = input_dir + '/' + train_in + '-hierarchical.qrels'
@@ -293,8 +345,12 @@ def main():
                                                                          train_paratext, test_art_qrels, test_top_qrels,
                                                                          test_hier_qrels, test_paratext, max_num_doc,
                                                                          val_samples)
-    run_fixed_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs,
+    if experiment_type == 'bbfix':
+        run_fixed_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs,
                                lambda_val, reg)
+    elif experiment_type == 'bbinc':
+        run_incremental_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs,
+                               lambda_val, lambda_increment, reg)
 
 if __name__ == '__main__':
     main()
