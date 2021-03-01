@@ -1,4 +1,4 @@
-from .treccar_run import get_trec_dat, get_paratext_dict
+from experiments.treccar_run import get_trec_dat, get_paratext_dict
 from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
 import numpy as np
