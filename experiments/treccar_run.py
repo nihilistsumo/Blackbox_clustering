@@ -63,6 +63,51 @@ def get_paratext_dict(paratext_file):
             paratext_dict[l.split('\t')[0]] = l.split('\t')[1].strip()
     return paratext_dict
 
+def prepare_cluster_data2(art_qrels, top_qrels, hier_qrels, paratext, do_filter, max_num_doc, val_samples):
+    page_paras, rev_para_top, rev_para_hier = get_trec_dat(art_qrels, top_qrels, hier_qrels)
+    len_paras = np.array([len(page_paras[page]) for page in page_paras.keys()])
+    print('mean paras: %.2f, std: %.2f, max paras: %.2f' % (np.mean(len_paras), np.std(len_paras), np.max(len_paras)))
+    ptext_dict = get_paratext_dict(paratext)
+    top_cluster_data = []
+    hier_cluster_data = []
+    pages = list(page_paras.keys())
+    skipped_pages = 0
+    if max_num_doc < 0:
+        max_num_doc = max([len(page_paras[p]) for p in page_paras.keys()])
+    for i in trange(len(pages)):
+        page = pages[i]
+        paras = page_paras[page]
+        paratexts = [ptext_dict[p] for p in paras]
+        top_sections = list(set([rev_para_top[p] for p in paras]))
+        top_labels = [top_sections.index(rev_para_top[p]) for p in paras]
+        hier_sections = list(set([rev_para_hier[p] for p in paras]))
+        hier_labels = [hier_sections.index(rev_para_hier[p]) for p in paras]
+        query_text = ' '.join(page.split('enwiki:')[1].split('%20'))
+        n = len(paras)
+        if do_filter:
+            if n < 20 or n > 200:
+                skipped_pages += 1
+                continue
+        paras = paras[:max_num_doc] if n >= max_num_doc else paras + ['dummy'] * (max_num_doc - n)
+        paratexts = paratexts[:max_num_doc] if n >= max_num_doc else paratexts + [''] * (max_num_doc - n)
+        top_labels = top_labels[:max_num_doc] if n >= max_num_doc else top_labels + [-1] * (max_num_doc - n)
+        hier_labels = hier_labels[:max_num_doc] if n >= max_num_doc else hier_labels + [-1] * (max_num_doc - n)
+        if do_filter:
+            if len(set(top_labels)) < 2 or n / len(set(top_labels)) < 2.5:
+                ## the page should have at least 2 top level sections and n/k should be at least 2.5
+                skipped_pages += 1
+                continue
+        top_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=paras, texts=paratexts,
+                                                          label=np.array(top_labels)))
+        hier_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=paras, texts=paratexts,
+                                                           label=np.array(hier_labels)))
+    if val_samples > 0:
+        top_cluster_data = top_cluster_data[:val_samples]
+        hier_cluster_data = hier_cluster_data[:val_samples]
+    print('Total data instances: %5d' % len(top_cluster_data))
+    return top_cluster_data, hier_cluster_data
+
+
 def prepare_cluster_data(train_art_qrels, train_top_qrels, train_hier_qrels, train_paratext,
                          test_art_qrels, test_top_qrels, test_hier_qrels, test_paratext, max_num_doc=75, val_samples=50):
     train_page_paras, train_rev_para_top, train_rev_para_hier = get_trec_dat(train_art_qrels, train_top_qrels,
@@ -90,14 +135,15 @@ def prepare_cluster_data(train_art_qrels, train_top_qrels, train_hier_qrels, tra
         hier_labels = [hier_sections.index(train_rev_para_hier[p]) for p in paras]
         query_text = ' '.join(page.split('enwiki:')[1].split('%20'))
         n = len(paras)
-        if n < 20:  ## at least 20 passages should be contained in the page
+        if n < 20 or n > 200:  ## at least 20 and at max 200 passages should be contained in the page
             skipped_pages += 1
             continue
         paras = paras[:max_num_doc] if n >= max_num_doc else paras + ['dummy'] * (max_num_doc - n)
         paratexts = paratexts[:max_num_doc] if n >= max_num_doc else paratexts + [''] * (max_num_doc - n)
         top_labels = top_labels[:max_num_doc] if n >= max_num_doc else top_labels + [-1] * (max_num_doc - n)
         hier_labels = hier_labels[:max_num_doc] if n >= max_num_doc else hier_labels + [-1] * (max_num_doc - n)
-        if len(set(top_labels)) < 2:  ## the page should have at least 2 top level sections
+        if len(set(top_labels)) < 2 or n/len(set(top_labels)) < 2.5:
+            ## the page should have at least 2 top level sections and n/k should be at least 2.5
             skipped_pages += 1
             continue
         train_top_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=paras, texts=paratexts,
@@ -335,16 +381,31 @@ def main():
     train_top_qrels = input_dir + '/' + train_in + '-toplevel.qrels'
     train_hier_qrels = input_dir + '/' + train_in + '-hierarchical.qrels'
     train_paratext = input_dir + '/' + train_pt
+    val_art_qrels = input_dir + '/benchmarkY1/benchmarkY1-train-nodup/train.pages.cbor-article.qrels'
+    val_top_qrels = input_dir + '/benchmarkY1/benchmarkY1-train-nodup/train.pages.cbor-toplevel.qrels'
+    val_hier_qrels = input_dir + '/benchmarkY1/benchmarkY1-train-nodup/train.pages.cbor-hierarchical.qrels'
+    val_paratext = input_dir + '/benchmarkY1/benchmarkY1-train-nodup/by1train_paratext/by1train_paratext.tsv'
     test_art_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-article.qrels'
     test_top_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-toplevel.qrels'
     test_hier_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-hierarchical.qrels'
     test_paratext = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/by1test_paratext/by1test_paratext.tsv'
 
+    '''
     train_top_cluster_data, train_hier_cluster_data, val_top_cluster_data, val_hier_cluster_data, \
     test_top_cluster_data, test_hier_cluster_data = prepare_cluster_data(train_art_qrels, train_top_qrels, train_hier_qrels,
                                                                          train_paratext, test_art_qrels, test_top_qrels,
                                                                          test_hier_qrels, test_paratext, max_num_doc,
                                                                          val_samples)
+                                                                         '''
+    print('Train data')
+    train_top_cluster_data, train_hier_cluster_data = prepare_cluster_data2(train_art_qrels, train_top_qrels, train_hier_qrels,
+                                                                            train_paratext, True, max_num_doc, 0)
+    print('Val data')
+    val_top_cluster_data, val_hier_cluster_data = prepare_cluster_data2(val_art_qrels, val_top_qrels, val_hier_qrels,
+                                                                            val_paratext, False, -1, val_samples)
+    print('Test data')
+    test_top_cluster_data, test_hier_cluster_data = prepare_cluster_data2(test_art_qrels, test_top_qrels, test_hier_qrels,
+                                                                        test_paratext, False, -1, 0)
     if experiment_type == 'bbfix':
         run_fixed_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs,
                                lambda_val, reg)
