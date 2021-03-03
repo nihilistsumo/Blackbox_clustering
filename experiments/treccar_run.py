@@ -357,7 +357,7 @@ def main():
     parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models/temp_model')
     parser.add_argument('-ls', '--loss', default='bb')
     parser.add_argument('-lm', '--lambda_val', type=float, default=200.0)
-    parser.add_argument('-bt', '--beta', type=float, default=10.0)
+    parser.add_argument('-b', '--beta', type=float, default=10.0)
     parser.add_argument('-li', '--lambda_inc', type=float, default=10.0)
     parser.add_argument('-rg', '--reg_const', type=float, default=2.5)
     parser.add_argument('-md', '--max_doc', type=int, default=50)
