@@ -366,6 +366,7 @@ def main():
     parser.add_argument('-ep', '--num_epoch', type=int, default=1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
     parser.add_argument('-ex', '--exp_type', default='bbfix')
+    parser.add_argument('-exl', '--exp_level', default='top')
     args = parser.parse_args()
     input_dir = args.input_dir
     train_in = args.train_input
@@ -382,6 +383,7 @@ def main():
     epochs = args.num_epoch
     eval_steps = args.eval_steps
     experiment_type = args.exp_type
+    experiment_level = args.exp_level
     train_art_qrels = input_dir + '/' + train_in + '-article.qrels'
     train_top_qrels = input_dir + '/' + train_in + '-toplevel.qrels'
     train_hier_qrels = input_dir + '/' + train_in + '-hierarchical.qrels'
@@ -411,15 +413,25 @@ def main():
     print('Test data')
     test_top_cluster_data, test_hier_cluster_data = prepare_cluster_data2(test_art_qrels, test_top_qrels, test_hier_qrels,
                                                                         test_paratext, False, -1, 0)
+
+    if experiment_level == 'top':
+        train_cluster_data = train_top_cluster_data
+        val_cluster_data = val_top_cluster_data
+        test_cluster_data = test_top_cluster_data
+    else:
+        train_cluster_data = train_hier_cluster_data
+        val_cluster_data = val_hier_cluster_data
+        test_cluster_data = test_hier_cluster_data
+
     if experiment_type == 'bbfix':
-        run_fixed_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs,
+        run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs,
                                lambda_val, reg, beta, loss_name)
     elif experiment_type == 'bbinc':
-        run_incremental_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs,
+        run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs,
                                lambda_val, lambda_increment, reg)
     elif experiment_type == 'trip':
-        train_top_triples = prepare_triples_data(train_top_cluster_data)
-        run_triplets_model(train_top_triples, val_top_cluster_data, output_path, batch_size, eval_steps, epochs)
+        train_triples = prepare_triples_data(train_cluster_data)
+        run_triplets_model(train_triples, val_cluster_data, output_path, batch_size, eval_steps, epochs)
 
 if __name__ == '__main__':
     main()

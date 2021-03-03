@@ -48,43 +48,6 @@ class OptimCluster(torch.autograd.Function):
         gradient = -(ctx.batch_adj_matrix - better_batch_adj_matrix) / ctx.lambda_val
         return torch.from_numpy(gradient.astype(np.float32)).to(grad_output.device), None, None
 
-def spectral_clustering(batch_pairscore_matrix, num_clusters):
-    batch_adjacency_matrix = np.zeros(batch_pairscore_matrix.shape)
-    num_batch = batch_pairscore_matrix.shape[0]
-    clustering_labels = []
-    '''
-    for i in range(num_batch):
-        print('pairscore matrix shape: ' + str(batch_pairscore_matrix[i].shape))
-    '''
-    for i in range(num_batch):
-        cl = SpectralClustering(n_clusters=num_clusters[i], affinity='precomputed')
-        cluster_label = cl.fit_predict(batch_pairscore_matrix[i])
-        #clustering_labels.append(torch.from_numpy(cluster_label))
-        clustering_labels.append(cluster_label)
-        for m in range(cluster_label.shape[0]):
-            for n in range(cluster_label.shape[0]):
-                if cluster_label[m] == cluster_label[n]:
-                    batch_adjacency_matrix[i][m][n] = 1.0
-    return batch_adjacency_matrix, clustering_labels
-
-class OptimSpectralCluster(torch.autograd.Function):
-
-    @staticmethod
-    def forward(ctx, batch_pairscore_matrix, lambda_val, num_clusters):
-        ctx.lambda_val = lambda_val
-        ctx.num_clusters = num_clusters
-        ctx.batch_pairscore_matrix = batch_pairscore_matrix.detach().cpu().numpy()
-        ctx.batch_adj_matrix, _ = spectral_clustering(ctx.batch_pairscore_matrix, ctx.num_clusters)
-        return torch.from_numpy(ctx.batch_adj_matrix).float().to(batch_pairscore_matrix.device)
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        grad_output_numpy = grad_output.detach().cpu().numpy()
-        batch_pairscore_matrix_prime = np.maximum(ctx.batch_pairscore_matrix + ctx.lambda_val * grad_output_numpy, 0.0)
-        better_batch_adj_matrix, _ = spectral_clustering(batch_pairscore_matrix_prime, ctx.num_clusters)
-        gradient = -(ctx.batch_adj_matrix - better_batch_adj_matrix) / ctx.lambda_val
-        return torch.from_numpy(gradient.astype(np.float32)).to(grad_output.device), None, None
-
 class BBClusterLossModel(nn.Module):
 
     def __init__(self, model: SentenceTransformer, device, lambda_val: float, reg_const: float):
@@ -139,6 +102,48 @@ class BBClusterLossModel(nn.Module):
         #pprint('Loss: %.5f' % loss.item())
         #print('Loss: '+str(loss.device))
         return loss
+
+####################################################
+# More experiments required for spectral clustering
+# with proper similarity metrics and affinity matrix
+####################################################
+
+def spectral_clustering(batch_pairscore_matrix, num_clusters):
+    batch_adjacency_matrix = np.zeros(batch_pairscore_matrix.shape)
+    num_batch = batch_pairscore_matrix.shape[0]
+    clustering_labels = []
+    '''
+    for i in range(num_batch):
+        print('pairscore matrix shape: ' + str(batch_pairscore_matrix[i].shape))
+    '''
+    for i in range(num_batch):
+        cl = SpectralClustering(n_clusters=num_clusters[i], affinity='precomputed')
+        cluster_label = cl.fit_predict(batch_pairscore_matrix[i])
+        #clustering_labels.append(torch.from_numpy(cluster_label))
+        clustering_labels.append(cluster_label)
+        for m in range(cluster_label.shape[0]):
+            for n in range(cluster_label.shape[0]):
+                if cluster_label[m] == cluster_label[n]:
+                    batch_adjacency_matrix[i][m][n] = 1.0
+    return batch_adjacency_matrix, clustering_labels
+
+class OptimSpectralCluster(torch.autograd.Function):
+
+    @staticmethod
+    def forward(ctx, batch_pairscore_matrix, lambda_val, num_clusters):
+        ctx.lambda_val = lambda_val
+        ctx.num_clusters = num_clusters
+        ctx.batch_pairscore_matrix = batch_pairscore_matrix.detach().cpu().numpy()
+        ctx.batch_adj_matrix, _ = spectral_clustering(ctx.batch_pairscore_matrix, ctx.num_clusters)
+        return torch.from_numpy(ctx.batch_adj_matrix).float().to(batch_pairscore_matrix.device)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_output_numpy = grad_output.detach().cpu().numpy()
+        batch_pairscore_matrix_prime = np.maximum(ctx.batch_pairscore_matrix + ctx.lambda_val * grad_output_numpy, 0.0)
+        better_batch_adj_matrix, _ = spectral_clustering(batch_pairscore_matrix_prime, ctx.num_clusters)
+        gradient = -(ctx.batch_adj_matrix - better_batch_adj_matrix) / ctx.lambda_val
+        return torch.from_numpy(gradient.astype(np.float32)).to(grad_output.device), None, None
 
 class BBSpectralClusterLossModel(nn.Module):
 
