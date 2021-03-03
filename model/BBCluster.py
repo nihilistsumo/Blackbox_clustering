@@ -52,8 +52,10 @@ def spectral_clustering(batch_pairscore_matrix, num_clusters):
     batch_adjacency_matrix = np.zeros(batch_pairscore_matrix.shape)
     num_batch = batch_pairscore_matrix.shape[0]
     clustering_labels = []
+    '''
     for i in range(num_batch):
         print('pairscore matrix shape: ' + str(batch_pairscore_matrix[i].shape))
+    '''
     for i in range(num_batch):
         cl = SpectralClustering(n_clusters=num_clusters[i], affinity='precomputed')
         cluster_label = cl.fit_predict(batch_pairscore_matrix[i])
