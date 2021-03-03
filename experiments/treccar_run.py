@@ -212,15 +212,13 @@ def get_triples(cluster_data, max_triples_per_page=25):
         all25_triples += triples
     return all25_triples
 
-def prepare_triples_data(train_cluster_data, val_cluster_data):
+def prepare_triples_data(train_cluster_data):
 
     # 25 triples from each page
     train_all25_triples = get_triples(train_cluster_data)
-    val_all25_triples = get_triples(val_cluster_data)
     pprint('No of train triples: %2d' % len(train_all25_triples))
-    pprint('No of val triples: %2d' % len(val_all25_triples))
 
-    return train_all25_triples, val_all25_triples
+    return train_all25_triples
 
 def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, train_batch_size, eval_steps,
                                num_epochs, lambda_val, reg, model_name='distilbert-base-uncased', out_features=256):
@@ -313,7 +311,7 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
                   output_path=output_path)
         print('Epoch: %3d, lambda: %.2f' % (e, lambda_val_curr))
 
-def run_triplets_model(train_triplets, val_triplets, output_path, train_batch_size, eval_steps, num_epochs,
+def run_triplets_model(train_triplets, val_cluster_data, output_path, train_batch_size, eval_steps, num_epochs,
                        model_name='distilbert-base-uncased', out_features=256):
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
@@ -333,7 +331,7 @@ def run_triplets_model(train_triplets, val_triplets, output_path, train_batch_si
     train_dataloader = DataLoader(train_triplets, shuffle=True, batch_size=train_batch_size)
     train_loss = losses.TripletLoss(model=model)
 
-    evaluator = ClusterEvaluator.from_input_examples(val_triplets)
+    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
 
     warmup_steps = int(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data
 
@@ -412,6 +410,9 @@ def main():
     elif experiment_type == 'bbinc':
         run_incremental_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs,
                                lambda_val, lambda_increment, reg)
+    elif experiment_type == 'trip':
+        train_top_triples = prepare_triples_data(train_top_cluster_data)
+        run_triplets_model(train_top_triples, val_top_cluster_data, output_path, batch_size, eval_steps, epochs)
 
 if __name__ == '__main__':
     main()
