@@ -20,7 +20,7 @@ import random
 from collections import Counter
 from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
-from model.BBCluster import BBClusterLossModel
+from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel
 import argparse
 random.seed(42)
 torch.manual_seed(42)
@@ -221,7 +221,7 @@ def prepare_triples_data(train_cluster_data):
     return train_all25_triples
 
 def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, train_batch_size, eval_steps,
-                               num_epochs, lambda_val, reg, model_name='distilbert-base-uncased', out_features=256):
+                               num_epochs, lambda_val, reg, beta, loss_name, model_name='distilbert-base-uncased', out_features=256):
     if torch.cuda.is_available():
         print('CUDA is available')
         device = torch.device('cuda')
@@ -243,7 +243,10 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
 
     model = SentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
     # model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-    loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg)
+    if loss_name == 'bbspec':
+        loss_model = BBSpectralClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg, beta=beta)
+    else:
+        loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg)
     # reg_loss_model = ClusterDistLossModel(model=model)
 
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
@@ -352,7 +355,9 @@ def main():
     parser.add_argument('-tin', '--train_input', default='train/base.train.cbor')
     parser.add_argument('-tp', '--train_paratext', default='train/train_paratext/train_paratext.tsv')
     parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models/temp_model')
+    parser.add_argument('-ls', '--loss', default='bb')
     parser.add_argument('-lm', '--lambda_val', type=float, default=200.0)
+    parser.add_argument('-bt', '--beta', type=float, default=10.0)
     parser.add_argument('-li', '--lambda_inc', type=float, default=10.0)
     parser.add_argument('-rg', '--reg_const', type=float, default=2.5)
     parser.add_argument('-md', '--max_doc', type=int, default=50)
@@ -366,7 +371,9 @@ def main():
     train_in = args.train_input
     train_pt = args.train_paratext
     output_path = args.output_model_path
+    loss_name = args.loss
     lambda_val = args.lambda_val
+    beta = args.beta
     lambda_increment = args.lambda_inc
     reg = args.reg_const
     max_num_doc = args.max_doc
@@ -406,7 +413,7 @@ def main():
                                                                         test_paratext, False, -1, 0)
     if experiment_type == 'bbfix':
         run_fixed_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs,
-                               lambda_val, reg)
+                               lambda_val, reg, beta, loss_name)
     elif experiment_type == 'bbinc':
         run_incremental_lambda_bbcluster(train_top_cluster_data, val_top_cluster_data, output_path, batch_size, eval_steps, epochs,
                                lambda_val, lambda_increment, reg)
