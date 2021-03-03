@@ -77,7 +77,7 @@ class OptimSpectralCluster(torch.autograd.Function):
     def backward(ctx, grad_output):
         grad_output_numpy = grad_output.detach().cpu().numpy()
         batch_pairscore_matrix_prime = np.maximum(ctx.batch_pairscore_matrix + ctx.lambda_val * grad_output_numpy, 0.0)
-        print('pairscore matrix prime shape: '+str(batch_pairscore_matrix_prime.shape()))
+        print('pairscore matrix prime shape: '+str(batch_pairscore_matrix_prime.shape))
         better_batch_adj_matrix, _ = spectral_clustering(batch_pairscore_matrix_prime, ctx.num_clusters)
         gradient = -(ctx.batch_adj_matrix - better_batch_adj_matrix) / ctx.lambda_val
         return torch.from_numpy(gradient.astype(np.float32)).to(grad_output.device), None, None
