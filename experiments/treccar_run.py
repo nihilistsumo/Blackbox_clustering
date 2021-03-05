@@ -63,6 +63,35 @@ def get_paratext_dict(paratext_file):
             paratext_dict[l.split('\t')[0]] = l.split('\t')[1].strip()
     return paratext_dict
 
+def prepare_cluster_data_train_only(art_qrels, top_qrels, hier_qrels, paratext, num_doc):
+    page_paras, rev_para_top, rev_para_hier = get_trec_dat(art_qrels, top_qrels, hier_qrels)
+    ptext_dict = get_paratext_dict(paratext)
+    top_cluster_data = []
+    hier_cluster_data = []
+    pages = list(page_paras.keys())
+    for i in trange(len(pages)):
+        page = pages[i]
+        paras = page_paras[page]
+        if len(paras) != num_doc:
+            continue
+        paratexts = [ptext_dict[p] for p in paras]
+        top_sections = list(set([rev_para_top[p] for p in paras]))
+        if len(top_sections) < 2:
+            continue
+        top_labels = [top_sections.index(rev_para_top[p]) for p in paras]
+        hier_sections = list(set([rev_para_hier[p] for p in paras]))
+        hier_labels = [hier_sections.index(rev_para_hier[p]) for p in paras]
+        assert len(paratexts) == num_doc
+        assert len(top_labels) == num_doc
+        assert len(hier_labels) == num_doc
+        query_text = ' '.join(page.split('enwiki:')[1].split('%20'))
+        top_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=paras, texts=paratexts,
+                                                    label=np.array(top_labels)))
+        hier_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=paras, texts=paratexts,
+                                                     label=np.array(hier_labels)))
+    print('Total data instances: %5d' % len(top_cluster_data))
+    return top_cluster_data, hier_cluster_data
+
 def prepare_cluster_data2(art_qrels, top_qrels, hier_qrels, paratext, do_filter, max_num_doc, val_samples):
     page_paras, rev_para_top, rev_para_hier = get_trec_dat(art_qrels, top_qrels, hier_qrels)
     len_paras = np.array([len(page_paras[page]) for page in page_paras.keys()])
@@ -405,8 +434,9 @@ def main():
                                                                          val_samples)
                                                                          '''
     print('Train data')
-    train_top_cluster_data, train_hier_cluster_data = prepare_cluster_data2(train_art_qrels, train_top_qrels, train_hier_qrels,
-                                                                            train_paratext, True, max_num_doc, 0)
+
+    #train_top_cluster_data, train_hier_cluster_data = prepare_cluster_data2(train_art_qrels, train_top_qrels, train_hier_qrels, train_paratext, True, max_num_doc, 0)
+    train_top_cluster_data, train_hier_cluster_data = prepare_cluster_data_train_only(train_art_qrels, train_top_qrels, train_hier_qrels, train_paratext, max_num_doc)
     print('Val data')
     val_top_cluster_data, val_hier_cluster_data = prepare_cluster_data2(val_art_qrels, val_top_qrels, val_hier_qrels,
                                                                             val_paratext, False, -1, val_samples)
