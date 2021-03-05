@@ -214,7 +214,7 @@ def prepare_cluster_data(train_art_qrels, train_top_qrels, train_hier_qrels, tra
     return train_top_cluster_data, train_hier_cluster_data, val_top_cluster_data, val_hier_cluster_data, \
            test_top_cluster_data, test_hier_cluster_data
 
-def get_triples(cluster_data, max_triples_per_page=25):
+def get_triples(cluster_data, max_triples_per_page):
     all25_triples = []
     for c in trange(len(cluster_data)):
         text = cluster_data[c].texts
@@ -231,7 +231,7 @@ def get_triples(cluster_data, max_triples_per_page=25):
                             triples.append(InputExample(texts=[text[j], text[k], text[i]], label=0))
                         else:
                             triples.append(InputExample(texts=[text[i], text[k], text[j]], label=0))
-                        if len(triples) >= max_triples_per_page:
+                        if max_triples_per_page > 0 and len(triples) >= max_triples_per_page:
                             page_done = True
                             break
                 if page_done:
@@ -241,10 +241,10 @@ def get_triples(cluster_data, max_triples_per_page=25):
         all25_triples += triples
     return all25_triples
 
-def prepare_triples_data(train_cluster_data):
+def prepare_triples_data(train_cluster_data, max_triples_per_page):
 
     # 25 triples from each page
-    train_all25_triples = get_triples(train_cluster_data)
+    train_all25_triples = get_triples(train_cluster_data, max_triples_per_page)
     pprint('No of train triples: %2d' % len(train_all25_triples))
 
     return train_all25_triples
@@ -390,6 +390,7 @@ def main():
     parser.add_argument('-li', '--lambda_inc', type=float, default=10.0)
     parser.add_argument('-rg', '--reg_const', type=float, default=2.5)
     parser.add_argument('-md', '--max_doc', type=int, default=50)
+    parser.add_argument('-mt', '--max_triple', type=int, default=25)
     parser.add_argument('-vs', '--val_samples', type=int, default=25)
     parser.add_argument('-bt', '--batch_size', type=int, default=1)
     parser.add_argument('-ep', '--num_epoch', type=int, default=1)
@@ -407,6 +408,7 @@ def main():
     lambda_increment = args.lambda_inc
     reg = args.reg_const
     max_num_doc = args.max_doc
+    max_num_trip = args.max_triple
     val_samples = args.val_samples
     batch_size = args.batch_size
     epochs = args.num_epoch
@@ -460,7 +462,7 @@ def main():
         run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs,
                                lambda_val, lambda_increment, reg)
     elif experiment_type == 'trip':
-        train_triples = prepare_triples_data(train_cluster_data)
+        train_triples = prepare_triples_data(train_cluster_data, max_num_trip)
         run_triplets_model(train_triples, val_cluster_data, output_path, batch_size, eval_steps, epochs)
 
 if __name__ == '__main__':
