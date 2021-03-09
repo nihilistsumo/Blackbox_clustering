@@ -22,6 +22,7 @@ from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
 from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel
 from experiments.train_model import run_triplets_model, run_fixed_lambda_bbcluster, run_incremental_lambda_bbcluster
+from experiments.eval_model import evaluate_ng20
 import argparse
 random.seed(42)
 torch.manual_seed(42)
@@ -114,6 +115,7 @@ def main():
     elif experiment_type == 'trip':
         train_triples = get_frac_triples(train_cluster_data, triple_frac)
         run_triplets_model(train_triples, val_cluster_data, output_path, batch_size, eval_steps, epochs)
+    evaluate_ng20(output_path, test_cluster_data)
 
 if __name__ == '__main__':
     main()

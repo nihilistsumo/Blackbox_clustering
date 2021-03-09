@@ -48,6 +48,11 @@ def evaluate_treccar(model_path, test_art_qrels, test_top_qrels, test_hier_qrels
         test_evaluator = ClusterEvaluator.from_input_examples(test_top_cluster_data)
         model.evaluate(test_evaluator)
 
+def evaluate_ng20(model_path, test_cluster_data):
+    model = SentenceTransformer(model_path)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
+    model.evaluate(test_evaluator)
+
 def main():
     parser = argparse.ArgumentParser(description='Evaluate saved models')
     parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
