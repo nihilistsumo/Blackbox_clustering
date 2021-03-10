@@ -3,8 +3,10 @@ from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
 import numpy as np
 from sentence_transformers import SentenceTransformer
+from sentence_transformers.readers import InputExample
 from tqdm.autonotebook import trange
 import argparse
+from sklearn.datasets import fetch_20newsgroups
 
 def evaluate_treccar(model_path, test_art_qrels, test_top_qrels, test_hier_qrels, test_paratext, level):
     test_page_paras, test_rev_para_top, test_rev_para_hier = get_trec_dat(test_art_qrels, test_top_qrels,
@@ -55,20 +57,34 @@ def evaluate_ng20(model_path, test_cluster_data):
 
 def main():
     parser = argparse.ArgumentParser(description='Evaluate saved models')
+    parser.add_argument('-dt', '--data', default='trec')
     parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
     parser.add_argument('-mp', '--model_path')
     parser.add_argument('-lv', '--level', default='t')
 
     args = parser.parse_args()
+    dataset = args.data
     input_dir = args.input_dir
     model_path = args.model_path
     level = args.level
-    test_art_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-article.qrels'
-    test_top_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-toplevel.qrels'
-    test_hier_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-hierarchical.qrels'
-    test_paratext = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/by1test_paratext/by1test_paratext.tsv'
+    if dataset == 'trec':
+        test_art_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-article.qrels'
+        test_top_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-toplevel.qrels'
+        test_hier_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-hierarchical.qrels'
+        test_paratext = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/by1test_paratext/by1test_paratext.tsv'
 
-    evaluate_treccar(model_path, test_art_qrels, test_top_qrels, test_hier_qrels, test_paratext, level)
+        evaluate_treccar(model_path, test_art_qrels, test_top_qrels, test_hier_qrels, test_paratext, level)
+    elif dataset == '20ng':
+        pages_to_cluster = 50
+        ng_test = fetch_20newsgroups(subset='test', remove=('headers', 'footers', 'quotes'))
+        test_cluster_data = []
+        for i in range(len(ng_test['filenames']) // pages_to_cluster):
+            test_cluster_data.append(
+                InputExample(texts=ng_test['data'][i * pages_to_cluster: (i + 1) * pages_to_cluster],
+                             label=ng_test['target'][
+                                   i * pages_to_cluster: (i + 1) * pages_to_cluster]))
+        print("Test instances: %5d" % len(test_cluster_data))
+        evaluate_ng20(model_path, test_cluster_data)
 
 if __name__ == '__main__':
     main()
