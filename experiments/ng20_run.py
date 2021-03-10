@@ -86,6 +86,7 @@ def main():
     parser.add_argument('-vs', '--val_samples', type=int, default=25)
     parser.add_argument('-bt', '--batch_size', type=int, default=1)
     parser.add_argument('-ep', '--num_epoch', type=int, default=1)
+    parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
     parser.add_argument('-ex', '--exp_type', default='bbfix')
     args = parser.parse_args()
@@ -100,6 +101,7 @@ def main():
     val_samples = args.val_samples
     batch_size = args.batch_size
     epochs = args.num_epoch
+    warmup_fraction = args.warmup
     eval_steps = args.eval_steps
     experiment_type = args.exp_type
     print('Preparing cluster data')
@@ -107,14 +109,14 @@ def main():
     train_cluster_data, val_cluster_data, test_cluster_data = prepare_cluster_data(num_pages, val_samples)
 
     if experiment_type == 'bbfix':
-        run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs,
+        run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
                                lambda_val, reg, beta, loss_name)
     elif experiment_type == 'bbinc':
-        run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs,
+        run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
                                lambda_val, lambda_increment, reg)
     elif experiment_type == 'trip':
         train_triples = get_frac_triples(train_cluster_data, triple_frac)
-        run_triplets_model(train_triples, val_cluster_data, output_path, batch_size, eval_steps, epochs)
+        run_triplets_model(train_triples, val_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction)
     evaluate_ng20(output_path, test_cluster_data)
 
 if __name__ == '__main__':

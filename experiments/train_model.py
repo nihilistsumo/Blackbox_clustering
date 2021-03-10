@@ -27,7 +27,7 @@ torch.manual_seed(42)
 np.random.seed(42)
 
 def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, train_batch_size, eval_steps,
-                               num_epochs, lambda_val, reg, beta, loss_name, model_name='distilbert-base-uncased', out_features=256):
+                               num_epochs, warmup_frac, lambda_val, reg, beta, loss_name, model_name='distilbert-base-uncased', out_features=256):
     if torch.cuda.is_available():
         print('CUDA is available')
         device = torch.device('cuda')
@@ -59,7 +59,7 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
     # train_dataloader2 = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
 
-    warmup_steps = int(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data
+    warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 
     print("Raw BERT embedding performance")
     evaluator(model, output_path)
@@ -73,7 +73,7 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
               output_path=output_path)
 
 def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, train_batch_size, eval_steps,
-                               num_epochs, lambda_val, lambda_increment, reg, model_name='distilbert-base-uncased', out_features=256):
+                               num_epochs, warmup_frac, lambda_val, lambda_increment, reg, model_name='distilbert-base-uncased', out_features=256):
     if torch.cuda.is_available():
         print('CUDA is available')
         device = torch.device('cuda')
@@ -103,7 +103,7 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
     evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
 
     per_lambda_num_epochs = 1
-    warmup_steps = int(len(train_dataloader) * per_lambda_num_epochs * 0.1)  # 10% of train data
+    warmup_steps = int(len(train_dataloader) * per_lambda_num_epochs * warmup_frac)  # 10% of train data
 
     print("Raw BERT embedding performance")
     evaluator(model, output_path)
@@ -120,7 +120,7 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
                   output_path=output_path)
         print('Epoch: %3d, lambda: %.2f' % (e, lambda_val_curr))
 
-def run_triplets_model(train_triplets, val_cluster_data, output_path, train_batch_size, eval_steps, num_epochs,
+def run_triplets_model(train_triplets, val_cluster_data, output_path, train_batch_size, eval_steps, num_epochs, warmup_frac,
                        model_name='distilbert-base-uncased', out_features=256):
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
@@ -142,7 +142,7 @@ def run_triplets_model(train_triplets, val_cluster_data, output_path, train_batc
 
     evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
 
-    warmup_steps = int(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data
+    warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 
     print("Raw BERT embedding performance")
     evaluator(model, output_path)
