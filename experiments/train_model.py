@@ -26,8 +26,13 @@ random.seed(42)
 torch.manual_seed(42)
 np.random.seed(42)
 
+from trains import Task
+
 def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, train_batch_size, eval_steps,
                                num_epochs, warmup_frac, lambda_val, reg, beta, loss_name, model_name='distilbert-base-uncased', out_features=256):
+    task = Task.init(project_name='BB Clustering', task_name='bbclustering_fixed_lambda')
+    config_dict = {'lambda_val': lambda_val, 'reg': reg}
+    config_dict = task.connect(config_dict)
     if torch.cuda.is_available():
         print('CUDA is available')
         device = torch.device('cuda')
@@ -50,9 +55,13 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
     model = SentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
     # model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
     if loss_name == 'bbspec':
-        loss_model = BBSpectralClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg, beta=beta)
+        loss_model = BBSpectralClusterLossModel(model=model, device=device,
+                                                lambda_val=config_dict.get('lambda_val', lambda_val),
+                                                reg_const=config_dict.get('reg', reg), beta=beta)
     else:
-        loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg)
+        loss_model = BBClusterLossModel(model=model, device=device,
+                                        lambda_val=config_dict.get('lambda_val', lambda_val),
+                                        reg_const=config_dict.get('reg', reg))
     # reg_loss_model = ClusterDistLossModel(model=model)
 
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)

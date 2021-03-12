@@ -104,6 +104,7 @@ def main():
     warmup_fraction = args.warmup
     eval_steps = args.eval_steps
     experiment_type = args.exp_type
+
     print('Preparing cluster data')
 
     train_cluster_data, val_cluster_data, test_cluster_data = prepare_cluster_data(num_pages, val_samples)
