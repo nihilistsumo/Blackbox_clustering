@@ -7,6 +7,7 @@ from sentence_transformers.readers import InputExample
 from tqdm.autonotebook import trange
 import argparse
 from sklearn.datasets import fetch_20newsgroups
+import torch
 
 def evaluate_treccar(model_path, test_art_qrels, test_top_qrels, test_hier_qrels, test_paratext, level):
     test_page_paras, test_rev_para_top, test_rev_para_hier = get_trec_dat(test_art_qrels, test_top_qrels,
@@ -51,7 +52,14 @@ def evaluate_treccar(model_path, test_art_qrels, test_top_qrels, test_hier_qrels
         model.evaluate(test_evaluator)
 
 def evaluate_ng20(model_path, test_cluster_data):
+    if torch.cuda.is_available():
+        print('CUDA is available')
+        device = torch.device('cuda')
+    else:
+        print('Using CPU')
+        device = torch.device('cpu')
     model = SentenceTransformer(model_path)
+    model.to(device)
     test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
     model.evaluate(test_evaluator)
 
