@@ -62,6 +62,7 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
     warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 
     print("Raw BERT embedding performance")
+    model.to(device)
     evaluator(model, output_path)
 
     # Train the model
@@ -106,6 +107,7 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
     warmup_steps = int(len(train_dataloader) * per_lambda_num_epochs * warmup_frac)  # 10% of train data
 
     print("Raw BERT embedding performance")
+    model.to(device)
     evaluator(model, output_path)
 
     # Train the model
@@ -122,6 +124,12 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
 
 def run_triplets_model(train_triplets, val_cluster_data, output_path, train_batch_size, eval_steps, num_epochs, warmup_frac,
                        model_name='distilbert-base-uncased', out_features=256):
+    if torch.cuda.is_available():
+        print('CUDA is available')
+        device = torch.device('cuda')
+    else:
+        print('Using CPU')
+        device = torch.device('cpu')
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
@@ -145,6 +153,7 @@ def run_triplets_model(train_triplets, val_cluster_data, output_path, train_batc
     warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 
     print("Raw BERT embedding performance")
+    model.to(device)
     evaluator(model, output_path)
 
     # Train the model
