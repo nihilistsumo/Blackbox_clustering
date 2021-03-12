@@ -26,7 +26,7 @@ random.seed(42)
 torch.manual_seed(42)
 np.random.seed(42)
 
-from trains import Task
+from clearml import Task
 
 def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, train_batch_size, eval_steps,
                                num_epochs, warmup_frac, lambda_val, reg, beta, loss_name, model_name='distilbert-base-uncased', out_features=256):
