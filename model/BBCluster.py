@@ -89,7 +89,7 @@ class CustomSentenceTransformer(SentenceTransformer):
         skip_scheduler = False
 
         config = {'epochs': epochs, 'steps_per_epoch': steps_per_epoch}
-        for epoch in range(config.get('epochs')):
+        for epoch in trange(config.get('epochs'), desc="Epoch", disable=not show_progress_bar):
             training_steps = 0
             running_loss_0 = 0.0
 
@@ -97,7 +97,7 @@ class CustomSentenceTransformer(SentenceTransformer):
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for _ in range(config.get('steps_per_epoch')):
+            for _ in range(config.get('steps_per_epoch'), desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]
