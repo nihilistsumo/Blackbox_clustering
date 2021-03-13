@@ -110,14 +110,14 @@ def main():
     train_cluster_data, val_cluster_data, test_cluster_data = prepare_cluster_data(num_pages, val_samples)
 
     if experiment_type == 'bbfix':
-        run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
+        run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
                                lambda_val, reg, beta, loss_name)
     elif experiment_type == 'bbinc':
-        run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
+        run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
                                lambda_val, lambda_increment, reg)
     elif experiment_type == 'trip':
         train_triples = get_frac_triples(train_cluster_data, triple_frac)
-        run_triplets_model(train_triples, val_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction)
+        run_triplets_model(train_triples, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction)
     evaluate_ng20(output_path, test_cluster_data)
 
 if __name__ == '__main__':

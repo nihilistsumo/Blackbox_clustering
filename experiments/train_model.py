@@ -20,7 +20,7 @@ import random
 from collections import Counter
 from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
-from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel
+from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel, CustomSentenceTransformer
 import argparse
 random.seed(42)
 torch.manual_seed(42)
@@ -28,7 +28,7 @@ np.random.seed(42)
 
 from clearml import Task
 
-def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, train_batch_size, eval_steps,
+def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps,
                                num_epochs, warmup_frac, lambda_val, reg, beta, loss_name, model_name='distilbert-base-uncased', out_features=256):
     task = Task.init(project_name='BB Clustering', task_name='bbclustering_fixed_lambda')
     config_dict = {'lambda_val': lambda_val, 'reg': reg}
@@ -52,7 +52,7 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
     doc_dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=out_features,
                                    activation_function=nn.Tanh())
 
-    model = SentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
+    model = CustomSentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
     # model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
     if loss_name == 'bbspec':
         loss_model = BBSpectralClusterLossModel(model=model, device=device,
@@ -67,6 +67,7 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     # train_dataloader2 = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
 
     warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 
@@ -77,12 +78,13 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path
     # Train the model
     model.fit(train_objectives=[(train_dataloader, loss_model)],
               evaluator=evaluator,
+              test_evaluator=test_evaluator,
               epochs=num_epochs,
               evaluation_steps=eval_steps,
               warmup_steps=warmup_steps,
               output_path=output_path)
 
-def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, train_batch_size, eval_steps,
+def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps,
                                num_epochs, warmup_frac, lambda_val, lambda_increment, reg, model_name='distilbert-base-uncased', out_features=256):
     if torch.cuda.is_available():
         print('CUDA is available')
@@ -103,7 +105,7 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
     doc_dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=out_features,
                                    activation_function=nn.Tanh())
 
-    model = SentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
+    model = CustomSentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
     # model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
     #loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val, reg_const=reg)
     # reg_loss_model = ClusterDistLossModel(model=model)
@@ -111,6 +113,7 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     # train_dataloader2 = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
 
     per_lambda_num_epochs = 1
     warmup_steps = int(len(train_dataloader) * per_lambda_num_epochs * warmup_frac)  # 10% of train data
@@ -125,13 +128,14 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, outpu
         loss_model = BBClusterLossModel(model=model, device=device, lambda_val=lambda_val_curr, reg_const=reg)
         model.fit(train_objectives=[(train_dataloader, loss_model)],
                   evaluator=evaluator,
+                  test_evaluator=test_evaluator,
                   epochs=per_lambda_num_epochs,
                   evaluation_steps=eval_steps,
                   warmup_steps=warmup_steps,
                   output_path=output_path)
         print('Epoch: %3d, lambda: %.2f' % (e, lambda_val_curr))
 
-def run_triplets_model(train_triplets, val_cluster_data, output_path, train_batch_size, eval_steps, num_epochs, warmup_frac,
+def run_triplets_model(train_triplets, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps, num_epochs, warmup_frac,
                        model_name='distilbert-base-uncased', out_features=256):
     if torch.cuda.is_available():
         print('CUDA is available')
@@ -152,12 +156,13 @@ def run_triplets_model(train_triplets, val_cluster_data, output_path, train_batc
     doc_dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=out_features,
                                    activation_function=nn.Tanh())
 
-    model = SentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
+    model = CustomSentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
 
     train_dataloader = DataLoader(train_triplets, shuffle=True, batch_size=train_batch_size)
     train_loss = losses.TripletLoss(model=model)
 
     evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
 
     warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 
@@ -168,6 +173,7 @@ def run_triplets_model(train_triplets, val_cluster_data, output_path, train_batc
     # Train the model
     model.fit(train_objectives=[(train_dataloader, train_loss)],
               evaluator=evaluator,
+              test_evaluator=test_evaluator,
               epochs=num_epochs,
               evaluation_steps=eval_steps,
               warmup_steps=warmup_steps,

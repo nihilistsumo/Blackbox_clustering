@@ -330,14 +330,14 @@ def main():
         test_cluster_data = test_hier_cluster_data
 
     if experiment_type == 'bbfix':
-        run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs,
+        run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs,
                                lambda_val, reg, beta, loss_name)
     elif experiment_type == 'bbinc':
-        run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, output_path, batch_size, eval_steps, epochs,
+        run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs,
                                lambda_val, lambda_increment, reg)
     elif experiment_type == 'trip':
         train_triples = prepare_triples_data(train_cluster_data, max_num_trip)
-        run_triplets_model(train_triples, val_cluster_data, output_path, batch_size, eval_steps, epochs)
+        run_triplets_model(train_triples, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs)
 
 if __name__ == '__main__':
     main()
