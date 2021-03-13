@@ -97,7 +97,7 @@ class CustomSentenceTransformer(SentenceTransformer):
                 loss_model.zero_grad()
                 loss_model.train()
 
-            for _ in range(config.get('steps_per_epoch'), desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
+            for _ in trange(config.get('steps_per_epoch'), desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
                 for train_idx in range(num_train_objectives):
                     loss_model = loss_models[train_idx]
                     optimizer = optimizers[train_idx]
