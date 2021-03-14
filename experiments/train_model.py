@@ -86,6 +86,9 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluste
 
 def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps,
                                num_epochs, warmup_frac, lambda_val, lambda_increment, reg, model_name='distilbert-base-uncased', out_features=256):
+    task = Task.init(project_name='BB Clustering', task_name='bbclustering_fixed_lambda')
+    config_dict = {'lambda_val': lambda_val, 'reg': reg}
+    config_dict = task.connect(config_dict)
     if torch.cuda.is_available():
         print('CUDA is available')
         device = torch.device('cuda')
@@ -137,6 +140,7 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_
 
 def run_triplets_model(train_triplets, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps, num_epochs, warmup_frac,
                        model_name='distilbert-base-uncased', out_features=256):
+    task = Task.init(project_name='BB Clustering', task_name='bbclustering_fixed_lambda')
     if torch.cuda.is_available():
         print('CUDA is available')
         device = torch.device('cuda')
