@@ -32,7 +32,7 @@ args = task.connect(args)
 # Get the template task experiment that we want to optimize
 if not args['template_task_id']:
     args['template_task_id'] = Task.get_task(
-        project_name='BB clustering', task_name='bbclustering_fixed_lambda').id
+        project_name='BB Clustering', task_name='bbclustering_fixed_lambda').id
 
 an_optimizer = HyperParameterOptimizer(
     # This is the experiment we want to optimize
