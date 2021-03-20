@@ -7,6 +7,8 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 from torch.optim import Optimizer
+import torch_xla
+import torch_xla.core.xla_model as xm
 from datetime import datetime
 from torch.utils.data import DataLoader
 from typing import Dict, List, Type, Iterable, Union
@@ -34,11 +36,11 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluste
     config_dict = {'lambda_val': lambda_val, 'reg': reg}
     config_dict = task.connect(config_dict)
     if torch.cuda.is_available():
-        print('CUDA is available')
         device = torch.device('cuda')
+        print('CUDA is available and using device: '+str(device))
     else:
-        print('Using CPU')
-        device = torch.device('cpu')
+        device = xm.xla_device()
+        print('Using XLA device: '+str(device))
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
@@ -90,11 +92,11 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_
     config_dict = {'lambda_val': lambda_val, 'reg': reg}
     config_dict = task.connect(config_dict)
     if torch.cuda.is_available():
-        print('CUDA is available')
         device = torch.device('cuda')
+        print('CUDA is available and using device: ' + str(device))
     else:
-        print('Using CPU')
-        device = torch.device('cpu')
+        device = xm.xla_device()
+        print('Using XLA device: ' + str(device))
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
@@ -142,11 +144,11 @@ def run_triplets_model(train_triplets, val_cluster_data, test_cluster_data, outp
                        model_name='distilbert-base-uncased', out_features=256):
     task = Task.init(project_name='BB Clustering', task_name='bbclustering_triplets')
     if torch.cuda.is_available():
-        print('CUDA is available')
         device = torch.device('cuda')
+        print('CUDA is available and using device: ' + str(device))
     else:
-        print('Using CPU')
-        device = torch.device('cpu')
+        device = xm.xla_device()
+        print('Using XLA device: ' + str(device))
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
