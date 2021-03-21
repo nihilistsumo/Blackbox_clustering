@@ -7,8 +7,7 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 from torch.optim import Optimizer
-import torch_xla
-import torch_xla.core.xla_model as xm
+#import torch_xla.core.xla_model as xm
 from datetime import datetime
 from torch.utils.data import DataLoader
 from typing import Dict, List, Type, Iterable, Union
@@ -39,12 +38,8 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluste
         device = torch.device('cuda')
         print('CUDA is available and using device: '+str(device))
     else:
-        try:
-            device = xm.xla_device()
-            print('Using XLA device: '+str(device))
-        except RuntimeError:
-            device = torch.device('cpu')
-            print('Neither CUDA nor XLA is available, using device: '+str(device))
+        device = torch.device('cpu')
+        print('CUDA not available, using device: '+str(device))
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
@@ -99,12 +94,8 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_
         device = torch.device('cuda')
         print('CUDA is available and using device: ' + str(device))
     else:
-        try:
-            device = xm.xla_device()
-            print('Using XLA device: ' + str(device))
-        except RuntimeError:
-            device = torch.device('cpu')
-            print('Neither CUDA nor XLA is available, using device: ' + str(device))
+        device = torch.device('cpu')
+        print('CUDA not available, using device: ' + str(device))
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
@@ -155,12 +146,8 @@ def run_triplets_model(train_triplets, val_cluster_data, test_cluster_data, outp
         device = torch.device('cuda')
         print('CUDA is available and using device: ' + str(device))
     else:
-        try:
-            device = xm.xla_device()
-            print('Using XLA device: ' + str(device))
-        except RuntimeError:
-            device = torch.device('cpu')
-            print('Neither CUDA nor XLA is available, using device: ' + str(device))
+        device = torch.device('cpu')
+        print('CUDA not available, using device: ' + str(device))
     ### Configure sentence transformers for training and train on the provided dataset
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
     word_embedding_model = models.Transformer(model_name)
