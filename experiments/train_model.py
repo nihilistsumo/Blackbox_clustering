@@ -7,7 +7,6 @@ import torch
 from torch import Tensor
 import torch.nn as nn
 from torch.optim import Optimizer
-#import torch_xla.core.xla_model as xm
 from datetime import datetime
 from torch.utils.data import DataLoader
 from typing import Dict, List, Type, Iterable, Union
