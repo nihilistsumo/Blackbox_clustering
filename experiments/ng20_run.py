@@ -28,7 +28,7 @@ random.seed(42)
 torch.manual_seed(42)
 np.random.seed(42)
 
-def prepare_cluster_data(pages_to_cluster, val_samples):
+def prepare_cluster_data(train_pages_to_cluster, test_pages_to_cluster, val_samples):
     ng_train = fetch_20newsgroups(subset='train', remove=('headers', 'footers', 'quotes'))
     ng_test = fetch_20newsgroups(subset='test', remove=('headers', 'footers', 'quotes'))
     print(ng_train.target_names)
@@ -36,16 +36,16 @@ def prepare_cluster_data(pages_to_cluster, val_samples):
     ng_train.keys()
     train_cluster_data = []
     test_cluster_data = []
-    for i in range(len(ng_train['filenames']) // pages_to_cluster):
-        train_cluster_data.append(InputExample(texts=ng_train['data'][i * pages_to_cluster: (i + 1) * pages_to_cluster],
+    for i in range(len(ng_train['filenames']) // train_pages_to_cluster):
+        train_cluster_data.append(InputExample(texts=ng_train['data'][i * train_pages_to_cluster: (i + 1) * train_pages_to_cluster],
                                                label=ng_train['target'][
-                                                     i * pages_to_cluster: (i + 1) * pages_to_cluster]))
+                                                     i * train_pages_to_cluster: (i + 1) * train_pages_to_cluster]))
     val_cluster_data = train_cluster_data[-val_samples:]
     train_cluster_data = train_cluster_data[:-val_samples]
-    for i in range(len(ng_test['filenames']) // pages_to_cluster):
-        test_cluster_data.append(InputExample(texts=ng_test['data'][i * pages_to_cluster: (i + 1) * pages_to_cluster],
+    for i in range(len(ng_test['filenames']) // test_pages_to_cluster):
+        test_cluster_data.append(InputExample(texts=ng_test['data'][i * test_pages_to_cluster: (i + 1) * test_pages_to_cluster],
                                               label=ng_test['target'][
-                                                    i * pages_to_cluster: (i + 1) * pages_to_cluster]))
+                                                    i * test_pages_to_cluster: (i + 1) * test_pages_to_cluster]))
     print("Train instances: %5d" % len(train_cluster_data))
     print("Val instances: %5d" % len(val_cluster_data))
     print("Test instances: %5d" % len(test_cluster_data))
@@ -76,12 +76,14 @@ def get_frac_triples(cluster_data, num_triples_frac):
 def main():
     parser = argparse.ArgumentParser(description='Run 20 news groups experiments')
     parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models/temp_model')
+    parser.add_argument('-mn', '--model_name', default='distilbert-base-uncased')
     parser.add_argument('-ls', '--loss', default='bb')
     parser.add_argument('-lm', '--lambda_val', type=float, default=200.0)
     parser.add_argument('-b', '--beta', type=float, default=10.0)
     parser.add_argument('-li', '--lambda_inc', type=float, default=10.0)
     parser.add_argument('-rg', '--reg_const', type=float, default=2.5)
     parser.add_argument('-np', '--num_pages', type=int, default=50)
+    parser.add_argument('-ntp', '--num_test_pages', type=int, default=0)
     parser.add_argument('-tf', '--triple_fraction', type=int, default=25)
     parser.add_argument('-vs', '--val_samples', type=int, default=25)
     parser.add_argument('-bt', '--batch_size', type=int, default=1)
@@ -91,12 +93,14 @@ def main():
     parser.add_argument('-ex', '--exp_type', default='bbfix')
     args = parser.parse_args()
     output_path = args.output_model_path
+    model_name = args.model_name
     loss_name = args.loss
     lambda_val = args.lambda_val
     beta = args.beta
     lambda_increment = args.lambda_inc
     reg = args.reg_const
     num_pages = args.num_pages
+    num_test_pages = args.num_test_pages
     triple_frac = args.triple_fraction
     val_samples = args.val_samples
     batch_size = args.batch_size
@@ -106,18 +110,20 @@ def main():
     experiment_type = args.exp_type
 
     print('Preparing cluster data')
+    if num_test_pages == 0:
+        num_test_pages = num_pages
 
-    train_cluster_data, val_cluster_data, test_cluster_data = prepare_cluster_data(num_pages, val_samples)
+    train_cluster_data, val_cluster_data, test_cluster_data = prepare_cluster_data(num_pages, num_test_pages, val_samples)
 
     if experiment_type == 'bbfix':
         run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
-                               lambda_val, reg, beta, loss_name)
+                               lambda_val, reg, beta, loss_name, model_name)
     elif experiment_type == 'bbinc':
         run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
-                               lambda_val, lambda_increment, reg)
+                               lambda_val, lambda_increment, reg, model_name)
     elif experiment_type == 'trip':
         train_triples = get_frac_triples(train_cluster_data, triple_frac)
-        run_triplets_model(train_triples, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction)
+        run_triplets_model(train_triples, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction, model_name)
     evaluate_ng20(output_path, test_cluster_data)
 
 if __name__ == '__main__':
