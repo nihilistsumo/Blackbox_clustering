@@ -249,18 +249,18 @@ class BBClusterLossModel(nn.Module):
                     1 - true_adjacency_mats).sum()
         adjacency_mats = self.optim.apply(embeddings_dist_mats, self.lambda_val, ks).to(self.device)
 
-        p = torch.sum(true_adjacency_mats, dim=(1,2)) - n
-        adjacency_wt_mats = torch.stack([(1.0 - true_adjacency_mats[i])*p[i]/(n*(n-1)) +
-                                         true_adjacency_mats[i]*(1.0-p[i]/(n*(n-1))) for i in range(batch_size)])
+        #p = torch.sum(true_adjacency_mats, dim=(1,2)) - n
+        #adjacency_wt_mats = torch.stack([(1.0 - true_adjacency_mats[i])*p[i]/(n*(n-1)) + true_adjacency_mats[i]*(1.0-p[i]/(n*(n-1))) for i in range(batch_size)])
 
-        weighted_err_mats = adjacency_wt_mats * (adjacency_mats * (1.0 - true_adjacency_mats) + (1.0 - adjacency_mats) * true_adjacency_mats)
+        #weighted_err_mats = adjacency_wt_mats * (adjacency_mats * (1.0 - true_adjacency_mats) + (1.0 - adjacency_mats) * true_adjacency_mats)
+        weighted_err_mats = adjacency_mats * (1.0 - true_adjacency_mats) + (1.0 - adjacency_mats) * true_adjacency_mats
         weighted_err_mean = weighted_err_mats.mean(dim=0).sum()
 
         #pprint('Weighted err mat mean: %.5f, mean similar dist: %.5f, mean dissimilar dist: %.5f, reg value: %.5f' %
         #       (weighted_err_mean, mean_similar_dist, mean_dissimilar_dist, 20*(mean_similar_dist/mean_dissimilar_dist)))
 
-        #loss = weighted_err_mean + self.reg*(mean_similar_dist - mean_dissimilar_dist)
-        loss = weighted_err_mean
+        loss = weighted_err_mean + self.reg*(mean_similar_dist - mean_dissimilar_dist)
+        #loss = weighted_err_mean
         #pprint('Loss: %.5f' % loss.item())
         #print('Loss: '+str(loss.device))
         return loss
