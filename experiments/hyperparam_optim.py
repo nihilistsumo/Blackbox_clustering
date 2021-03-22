@@ -46,12 +46,12 @@ def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda
         objective_metric_title='val_ARI',
         objective_metric_series='val_ARI',
         objective_metric_sign='max',
-        max_number_of_concurrent_tasks=2,
+        max_number_of_concurrent_tasks=4,
         optimizer_class=search_strategy,
         execution_queue='default',
         # Optional: Limit the execution time of a single experiment, in minutes.
         # (this is optional, and if using  OptimizerBOHB, it is ignored)
-        time_limit_per_job=10.,
+        time_limit_per_job=60.,
         # Check the experiments every 6 seconds is way too often, we should probably set it to 5 min,
         # assuming a single experiment is usually hours...
         pool_period_min=check_exp_period,
@@ -68,18 +68,17 @@ def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda
     )
 
     # report every 12 seconds, this is way too often, but we are testing here J
-    an_optimizer.set_report_period(0.2)
+    an_optimizer.set_report_period(1)
     # start the optimization process, callback function to be called every time an experiment is completed
     # this function returns immediately
     an_optimizer.start(job_complete_callback=job_complete_callback)
-    # set the time limit for the optimization process (2 hours)
 
-    # set the time limit for the optimization process (2 hours)
-    an_optimizer.set_time_limit(in_minutes=90.0)
+    # set the time limit for the optimization process
+    an_optimizer.set_time_limit(in_minutes=1440.0)
     # wait until process is done (notice we are controlling the optimization process in the background)
     an_optimizer.wait()
     # optimization is completed, print the top performing experiments id
-    top_exp = an_optimizer.get_top_experiments(top_k=3)
+    top_exp = an_optimizer.get_top_experiments(top_k=5)
     print([t.id for t in top_exp])
     # make sure background optimization stopped
     an_optimizer.stop()
