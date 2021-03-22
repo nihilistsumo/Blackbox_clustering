@@ -61,10 +61,10 @@ def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda
         total_max_jobs=10,
         # This is only applicable for OptimizerBOHB and ignore by the rest
         # set the minimum number of iterations for an experiment, before early stopping
-        min_iteration_per_job=10,
+        min_iteration_per_job=100,
         # Set the maximum number of iterations for an experiment to execute
         # (This is optional, unless using OptimizerBOHB where this is a must)
-        max_iteration_per_job=30
+        max_iteration_per_job=10000
     )
 
     # report every 12 seconds, this is way too often, but we are testing here J
