@@ -68,7 +68,7 @@ def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda
     )
 
     # report every 12 seconds, this is way too often, but we are testing here J
-    an_optimizer.set_report_period(1)
+    an_optimizer.set_report_period(check_exp_period)
     # start the optimization process, callback function to be called every time an experiment is completed
     # this function returns immediately
     an_optimizer.start(job_complete_callback=job_complete_callback)
