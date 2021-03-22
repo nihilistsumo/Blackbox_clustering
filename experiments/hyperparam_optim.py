@@ -17,7 +17,7 @@ def job_complete_callback(
     if job_id == top_performance_job_id:
         print('WOOT WOOT we broke the record! Objective reached {}'.format(objective_value))
 
-def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda_step, reg_min, reg_max, reg_step, check_exp_period):
+def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda_step, reg_min, reg_max, reg_step, check_exp_period, task_id=None):
     # Connecting CLEARML
     task = Task.init(project_name='BBcluster Hyper-Parameter Optimization',
                      task_name='Automatic Hyper-Parameter Optimization',
@@ -26,7 +26,7 @@ def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda
 
     # experiment template to optimize in the hyper-parameter optimization
     args = {
-        'template_task_id': None,
+        'template_task_id': task_id,
         'run_as_service': False,
     }
     args = task.connect(args)
@@ -89,6 +89,7 @@ def main():
     parser = argparse.ArgumentParser(description='Run hyper parameter optimization for BB clustering')
     parser.add_argument('-pn', '--project_name', default='BB Clustering')
     parser.add_argument('-tn', '--task_name', default='bbclustering_fixed_lambda')
+    parser.add_argument('-ti', '--task_id')
     parser.add_argument('-lm', '--lambda_min', type=float, default=20.0)
     parser.add_argument('-lx', '--lambda_max', type=float, default=200.0)
     parser.add_argument('-ls', '--lambda_step', type=float, default=5.0)
@@ -99,6 +100,7 @@ def main():
     args = parser.parse_args()
     project_name = args.project_name
     task_name = args.task_name
+    task_id = args.task_id
     lmin = args.lambda_min
     lmax = args.lambda_max
     lstep = args.lambda_step
@@ -107,7 +109,7 @@ def main():
     rstep = args.reg_step
     report_period = args.report_period
 
-    run_hyperparam_optim(project_name, task_name, lmin, lmax, lstep, rmin, rmax, rstep, report_period)
+    run_hyperparam_optim(project_name, task_name, lmin, lmax, lstep, rmin, rmax, rstep, report_period, task_id)
 
 if __name__ == '__main__':
     main()
