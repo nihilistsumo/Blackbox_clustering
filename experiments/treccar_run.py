@@ -286,7 +286,6 @@ def main():
     parser.add_argument('-li', '--lambda_inc', type=float, default=10.0)
     parser.add_argument('-rg', '--reg_const', type=float, default=2.5)
     parser.add_argument('-md', '--max_doc', type=int, default=50)
-    parser.add_argument('-mt', '--max_triple', type=int, default=25)
     parser.add_argument('-tf', '--triple_fraction', type=int, default=25)
     parser.add_argument('-vs', '--val_samples', type=int, default=25)
     parser.add_argument('-bt', '--batch_size', type=int, default=1)
@@ -307,7 +306,6 @@ def main():
     lambda_increment = args.lambda_inc
     reg = args.reg_const
     max_num_doc = args.max_doc
-    max_num_trip = args.max_triple
     triple_frac = args.triple_fraction
     val_samples = args.val_samples
     batch_size = args.batch_size
