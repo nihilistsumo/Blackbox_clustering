@@ -215,6 +215,27 @@ def prepare_cluster_data(train_art_qrels, train_top_qrels, train_hier_qrels, tra
     return train_top_cluster_data, train_hier_cluster_data, val_top_cluster_data, val_hier_cluster_data, \
            test_top_cluster_data, test_hier_cluster_data
 
+def get_frac_triples(cluster_data, num_triples_frac):
+    frac_triples = []
+    for c in trange(len(cluster_data)):
+        text = cluster_data[c].texts
+        t = list(cluster_data[c].label)
+        triples = []
+        for i in range(len(t) - 2):
+            for j in range(i + 1, len(t) - 1):
+                for k in range(i + 2, len(t)):
+                    if len(set([t[i], t[j], t[k]])) == 2:
+                        if t[i] == t[j]:
+                            triples.append(InputExample(texts=[text[i], text[j], text[k]], label=0))
+                        elif t[j] == t[k]:
+                            triples.append(InputExample(texts=[text[j], text[k], text[i]], label=0))
+                        else:
+                            triples.append(InputExample(texts=[text[i], text[k], text[j]], label=0))
+        frac_triples += random.sample(triples, len(triples) // num_triples_frac)
+    print('No of train triples: %2d' % len(frac_triples))
+
+    return frac_triples
+
 def get_triples(cluster_data, max_triples_per_page):
     all25_triples = []
     for c in trange(len(cluster_data)):
@@ -258,6 +279,7 @@ def main():
     parser.add_argument('-tin', '--train_input', default='train/base.train.cbor')
     parser.add_argument('-tp', '--train_paratext', default='train/train_paratext/train_paratext.tsv')
     parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models/temp_model')
+    parser.add_argument('-mn', '--model_name', default='distilbert-base-uncased')
     parser.add_argument('-ls', '--loss', default='bb')
     parser.add_argument('-lm', '--lambda_val', type=float, default=200.0)
     parser.add_argument('-b', '--beta', type=float, default=10.0)
@@ -265,9 +287,11 @@ def main():
     parser.add_argument('-rg', '--reg_const', type=float, default=2.5)
     parser.add_argument('-md', '--max_doc', type=int, default=50)
     parser.add_argument('-mt', '--max_triple', type=int, default=25)
+    parser.add_argument('-tf', '--triple_fraction', type=int, default=25)
     parser.add_argument('-vs', '--val_samples', type=int, default=25)
     parser.add_argument('-bt', '--batch_size', type=int, default=1)
     parser.add_argument('-ep', '--num_epoch', type=int, default=1)
+    parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
     parser.add_argument('-ex', '--exp_type', default='bbfix')
     parser.add_argument('-exl', '--exp_level', default='top')
@@ -276,6 +300,7 @@ def main():
     train_in = args.train_input
     train_pt = args.train_paratext
     output_path = args.output_model_path
+    model_name = args.model_name
     loss_name = args.loss
     lambda_val = args.lambda_val
     beta = args.beta
@@ -283,9 +308,11 @@ def main():
     reg = args.reg_const
     max_num_doc = args.max_doc
     max_num_trip = args.max_triple
+    triple_frac = args.triple_fraction
     val_samples = args.val_samples
     batch_size = args.batch_size
     epochs = args.num_epoch
+    warmup_fraction = args.warmup
     eval_steps = args.eval_steps
     experiment_type = args.exp_type
     experiment_level = args.exp_level
@@ -330,14 +357,16 @@ def main():
         test_cluster_data = test_hier_cluster_data
 
     if experiment_type == 'bbfix':
-        run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs,
-                               lambda_val, reg, beta, loss_name)
+        run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size,
+                                   eval_steps, epochs, warmup_fraction, lambda_val, reg, beta, loss_name, model_name)
     elif experiment_type == 'bbinc':
-        run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs,
-                               lambda_val, lambda_increment, reg)
+        run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path,
+                                         batch_size, eval_steps, epochs, warmup_fraction, lambda_val, lambda_increment,
+                                         reg, model_name)
     elif experiment_type == 'trip':
-        train_triples = prepare_triples_data(train_cluster_data, max_num_trip)
-        run_triplets_model(train_triples, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs)
+        train_triples = get_frac_triples(train_cluster_data, triple_frac)
+        run_triplets_model(train_triples, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps,
+                           epochs, warmup_fraction, model_name)
 
 if __name__ == '__main__':
     main()

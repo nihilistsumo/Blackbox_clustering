@@ -28,6 +28,27 @@ random.seed(42)
 torch.manual_seed(42)
 np.random.seed(42)
 
+def get_frac_triples(cluster_data, num_triples_frac):
+    frac_triples = []
+    for c in trange(len(cluster_data)):
+        text = cluster_data[c].texts
+        t = list(cluster_data[c].label)
+        triples = []
+        for i in range(len(t) - 2):
+            for j in range(i + 1, len(t) - 1):
+                for k in range(i + 2, len(t)):
+                    if len(set([t[i], t[j], t[k]])) == 2:
+                        if t[i] == t[j]:
+                            triples.append(InputExample(texts=[text[i], text[j], text[k]], label=0))
+                        elif t[j] == t[k]:
+                            triples.append(InputExample(texts=[text[j], text[k], text[i]], label=0))
+                        else:
+                            triples.append(InputExample(texts=[text[i], text[k], text[j]], label=0))
+        frac_triples += random.sample(triples, len(triples) // num_triples_frac)
+    print('No of train triples: %2d' % len(frac_triples))
+
+    return frac_triples
+
 def prepare_cluster_data(train_pages_to_cluster, test_pages_to_cluster, val_samples):
     ng_train = fetch_20newsgroups(subset='train', remove=('headers', 'footers', 'quotes'))
     ng_test = fetch_20newsgroups(subset='test', remove=('headers', 'footers', 'quotes'))
@@ -51,27 +72,6 @@ def prepare_cluster_data(train_pages_to_cluster, test_pages_to_cluster, val_samp
     print("Test instances: %5d" % len(test_cluster_data))
 
     return train_cluster_data, val_cluster_data, test_cluster_data
-
-def get_frac_triples(cluster_data, num_triples_frac):
-    frac_triples = []
-    for c in trange(len(cluster_data)):
-        text = cluster_data[c].texts
-        t = list(cluster_data[c].label)
-        triples = []
-        for i in range(len(t) - 2):
-            for j in range(i + 1, len(t) - 1):
-                for k in range(i + 2, len(t)):
-                    if len(set([t[i], t[j], t[k]])) == 2:
-                        if t[i] == t[j]:
-                            triples.append(InputExample(texts=[text[i], text[j], text[k]], label=0))
-                        elif t[j] == t[k]:
-                            triples.append(InputExample(texts=[text[j], text[k], text[i]], label=0))
-                        else:
-                            triples.append(InputExample(texts=[text[i], text[k], text[j]], label=0))
-        frac_triples += random.sample(triples, len(triples) // num_triples_frac)
-    print('No of train triples: %2d' % len(frac_triples))
-
-    return frac_triples
 
 def main():
     parser = argparse.ArgumentParser(description='Run 20 news groups experiments')
