@@ -166,7 +166,7 @@ class CustomSentenceTransformer(SentenceTransformer):
 
             #self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
             #tensorboard_writer.add_scalar('training_loss', running_loss_0 / evaluation_steps, global_step)
-            logger.report_scalar('Training progress', 'training_loss', iteration=global_step,
+            logger.report_scalar('Loss', 'training_loss', iteration=global_step,
                                  value=running_loss_0 / evaluation_steps)
             if evaluator is not None:
                 score = evaluator(self, output_path=output_path, epoch=epoch, steps=training_steps)
