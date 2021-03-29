@@ -162,7 +162,16 @@ class CustomSentenceTransformer(SentenceTransformer):
 
             self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1, callback)
             if test_evaluator is not None:
-                test_ari = self.evaluate(test_evaluator)
+                best_model = SentenceTransformer(output_path)
+                device = self.device
+                if torch.cuda.is_available():
+                    self.to(torch.device('cpu'))
+                    best_model.to(device)
+                    test_ari = best_model.evaluate(test_evaluator)
+                    best_model.to(torch.device('cpu'))
+                    self.to(device)
+                else:
+                    test_ari = best_model.evaluate(test_evaluator)
                 tensorboard_writer.add_scalar('test_ARI', test_ari, epoch)
 
         if evaluator is None and output_path is not None:  # No evaluator, but output path: save final model version
