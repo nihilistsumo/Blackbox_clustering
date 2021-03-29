@@ -82,7 +82,8 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluste
               epochs=num_epochs,
               evaluation_steps=eval_steps,
               warmup_steps=warmup_steps,
-              output_path=output_path)
+              output_path=output_path,
+              logger=task.get_logger())
 
 def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps,
                                num_epochs, warmup_frac, lambda_val, lambda_increment, reg, model_name='distilbert-base-uncased', out_features=256):
@@ -135,7 +136,8 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_
                   epochs=per_lambda_num_epochs,
                   evaluation_steps=eval_steps,
                   warmup_steps=warmup_steps,
-                  output_path=output_path)
+                  output_path=output_path,
+                  logger=task.get_logger())
         print('Epoch: %3d, lambda: %.2f' % (e, lambda_val_curr))
 
 def run_triplets_model(train_triplets, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps, num_epochs, warmup_frac,
@@ -181,4 +183,5 @@ def run_triplets_model(train_triplets, val_cluster_data, test_cluster_data, outp
               epochs=num_epochs,
               evaluation_steps=eval_steps,
               warmup_steps=warmup_steps,
-              output_path=output_path)
+              output_path=output_path,
+              logger=task.get_logger())
