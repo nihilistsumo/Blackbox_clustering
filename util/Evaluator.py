@@ -7,7 +7,7 @@ import numpy as np
 from typing import List
 from tqdm.autonotebook import trange
 from sklearn.cluster import AgglomerativeClustering
-from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score
+from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score, normalized_mutual_info_score
 
 class ClusterEvaluator(SentenceEvaluator):
 
@@ -29,7 +29,7 @@ class ClusterEvaluator(SentenceEvaluator):
         return dist_mat
 
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
-        rand_scores, nmi_scores = [], []
+        rand_scores, nmi_scores, ami_scores = [], [], []
         model_device = model.device
         #if next(model.parameters()).is_cuda:
         #    model.cpu()
@@ -43,10 +43,12 @@ class ClusterEvaluator(SentenceEvaluator):
             cl = AgglomerativeClustering(n_clusters=torch.unique(true_label).numel(), affinity='precomputed', linkage='average')
             cluster_label = cl.fit_predict(embeddings_dist_mat.detach().cpu().numpy())
             rand_scores.append(adjusted_rand_score(true_label.numpy(), cluster_label))
-            nmi_scores.append(adjusted_mutual_info_score(true_label.numpy(), cluster_label))
+            nmi_scores.append(normalized_mutual_info_score(true_label.numpy(), cluster_label))
+            ami_scores.append(adjusted_mutual_info_score(true_label.numpy(), cluster_label))
         mean_rand = np.mean(np.array(rand_scores))
         mean_nmi = np.mean(np.array(nmi_scores))
-        print("\nRAND: %.5f, NMI: %.5f\n" % (mean_rand, mean_nmi), flush=True)
+        mean_ami = np.mean(np.array(ami_scores))
+        print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f\n" % (mean_rand, mean_nmi, mean_ami), flush=True)
         #if torch.cuda.is_available():
         #    model.to(model_device)
         return mean_rand
