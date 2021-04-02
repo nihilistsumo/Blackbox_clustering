@@ -291,6 +291,39 @@ class BBClusterLossModel(nn.Module):
         #print('Loss: '+str(loss.device))
         return loss
 
+class DBCLossModel(nn.Module):
+
+    def __init__(self, model: SentenceTransformer, device):
+
+        super(DBCLossModel, self).__init__()
+        self.model = model
+        self.device = device
+
+    def true_adj_mat(self, label):
+        n = label.numel()
+        adj_mat = torch.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                if i == j or label[i] == label[j]:
+                    adj_mat[i][j] = 1.0
+        return adj_mat
+
+    def forward(self, passage_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+
+        # passage_features will be a list of feature dicts -> [all 1st passages in batch, all 2nd passages in batch, ...]
+        # labels shape: batch X maxpsg
+        batch_size = labels.shape[0]
+        n = labels.shape[1]
+        ks = [torch.unique(labels[i]).numel() for i in range(batch_size)]
+        true_adjacency_mats = torch.stack([self.true_adj_mat(labels[i]) for i in range(batch_size)]).to(self.device)
+
+        # embeddings shape: batch X maxpsg X emb
+        embeddings = torch.stack([self.model(passages)['sentence_embedding'] for passages in passage_features], dim=1)
+        embeddings_dist_mats = torch.stack([euclid_dist(embeddings[i]) for i in range(batch_size)])
+        mean_norm_similar_dist_squared = (embeddings_dist_mats * embeddings_dist_mats * true_adjacency_mats).sum() / true_adjacency_mats.sum()
+
+        return mean_norm_similar_dist_squared
+
 ####################################################
 # More experiments required for spectral clustering
 # with proper similarity metrics and affinity matrix

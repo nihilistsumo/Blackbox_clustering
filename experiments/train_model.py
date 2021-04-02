@@ -20,7 +20,7 @@ import random
 from collections import Counter
 from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
-from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel, CustomSentenceTransformer
+from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel, CustomSentenceTransformer, DBCLossModel
 import argparse
 random.seed(42)
 torch.manual_seed(42)
@@ -178,6 +178,54 @@ def run_triplets_model(train_triplets, val_cluster_data, test_cluster_data, outp
 
     # Train the model
     model.fit(train_objectives=[(train_dataloader, train_loss)],
+              evaluator=evaluator,
+              test_evaluator=test_evaluator,
+              epochs=num_epochs,
+              evaluation_steps=eval_steps,
+              warmup_steps=warmup_steps,
+              output_path=output_path,
+              logger=task.get_logger())
+
+def run_dbc(train_cluster_data, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps,
+                               num_epochs, warmup_frac, model_name='distilbert-base-uncased', out_features=256):
+    task = Task.init(project_name='BB Clustering', task_name='dbc')
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+        print('CUDA is available and using device: '+str(device))
+    else:
+        device = torch.device('cpu')
+        print('CUDA not available, using device: '+str(device))
+    ### Configure sentence transformers for training and train on the provided dataset
+    # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
+    word_embedding_model = models.Transformer(model_name)
+
+    # Apply mean pooling to get one fixed sized sentence vector
+    pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
+                                   pooling_mode_mean_tokens=True,
+                                   pooling_mode_cls_token=False,
+                                   pooling_mode_max_tokens=False)
+
+    doc_dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=out_features,
+                                   activation_function=nn.Tanh())
+
+    model = CustomSentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
+    # model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+    loss_model = DBCLossModel(model=model, device=device)
+    # reg_loss_model = ClusterDistLossModel(model=model)
+
+    train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
+    # train_dataloader2 = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
+    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
+
+    warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
+
+    print("Raw BERT embedding performance")
+    model.to(device)
+    evaluator(model, output_path)
+
+    # Train the model
+    model.fit(train_objectives=[(train_dataloader, loss_model)],
               evaluator=evaluator,
               test_evaluator=test_evaluator,
               epochs=num_epochs,
