@@ -31,6 +31,8 @@ np.random.seed(42)
 
 def get_pairs(cluster_data, balanced):
     pairs = []
+    if balanced:
+        print('Going to balance the datasets')
     for c in trange(len(cluster_data)):
         text = cluster_data[c].texts
         t = list(cluster_data[c].label)
@@ -112,7 +114,7 @@ def main():
     parser.add_argument('-ep', '--num_epoch', type=int, default=1)
     parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
-    parser.add_argument('-bl', '--balanced', type=bool, default=True)
+    parser.add_argument('--balanced', default=False, action='store_true')
     parser.add_argument('-ex', '--exp_type', default='bbfix')
     args = parser.parse_args()
     output_path = args.output_model_path
