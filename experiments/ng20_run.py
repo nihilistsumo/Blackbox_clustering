@@ -114,6 +114,7 @@ def main():
     parser.add_argument('-ep', '--num_epoch', type=int, default=1)
     parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
+    parser.add_argument('--gpu_eval', default=False, action='store_true')
     parser.add_argument('--balanced', default=False, action='store_true')
     parser.add_argument('-ex', '--exp_type', default='bbfix')
     args = parser.parse_args()
@@ -132,6 +133,7 @@ def main():
     epochs = args.num_epoch
     warmup_fraction = args.warmup
     eval_steps = args.eval_steps
+    gpu_eval = args.gpu_eval
     balanced = args.balanced
     experiment_type = args.exp_type
 
@@ -143,21 +145,21 @@ def main():
 
     if experiment_type == 'bbfix':
         run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
-                               lambda_val, reg, beta, loss_name, model_name)
+                               lambda_val, reg, beta, loss_name, gpu_eval, model_name)
     elif experiment_type == 'bbinc':
         run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
-                               lambda_val, lambda_increment, reg, model_name)
+                               lambda_val, lambda_increment, reg, gpu_eval, model_name)
     elif experiment_type == 'trip':
         train_triples = get_frac_triples(train_cluster_data, triple_frac)
-        run_triplets_model(train_triples, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction, model_name)
+        run_triplets_model(train_triples, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction, gpu_eval, model_name)
     elif experiment_type == 'dbc':
-        run_dbc(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction, model_name)
+        run_dbc(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction, gpu_eval, model_name)
     elif experiment_type == 'bin':
         train_pairs = get_pairs(train_cluster_data, balanced)
         run_binary_model(train_pairs, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs,
-                         warmup_fraction, model_name)
+                         warmup_fraction, gpu_eval, model_name)
 
-    evaluate_ng20(output_path, test_cluster_data)
+    evaluate_ng20(output_path, test_cluster_data, gpu_eval)
 
 if __name__ == '__main__':
     main()

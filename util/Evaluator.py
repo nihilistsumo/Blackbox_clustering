@@ -11,18 +11,19 @@ from sklearn.metrics import adjusted_rand_score, adjusted_mutual_info_score, nor
 
 class ClusterEvaluator(SentenceEvaluator):
 
-    def __init__(self, passages: List[List[str]], labels: List[Tensor]):
+    def __init__(self, passages: List[List[str]], labels: List[Tensor], use_model_device=True):
         self.passages = passages
         self.labels = labels
+        self.use_model_device = use_model_device
 
     @classmethod
-    def from_input_examples(cls, examples: List[InputExample], **kwargs):
+    def from_input_examples(cls, examples: List[InputExample], use_model_device, **kwargs):
         passages = []
         labels = []
         for example in examples:
             passages.append(example.texts)
             labels.append(torch.from_numpy(example.label))
-        return cls(passages=passages, labels=labels, **kwargs)
+        return cls(passages=passages, labels=labels, use_model_device=use_model_device, **kwargs)
 
     def euclid_dist(self, x):
         dist_mat = torch.norm(x[:, None] - x, dim=2, p=2)
@@ -31,13 +32,14 @@ class ClusterEvaluator(SentenceEvaluator):
     def __call__(self, model, output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         rand_scores, nmi_scores, ami_scores = [], [], []
         model_device = model.device
-        #if next(model.parameters()).is_cuda:
-        #    model.cpu()
+        if not self.use_model_device:
+            model.cpu()
         for i in trange(len(self.passages), desc="Evaluating on val", smoothing=0.05):
             passages_to_cluster = [self.passages[i][p] for p in range(len(self.passages[i])) if len(self.passages[i][p])>0]
             true_label = self.labels[i][:len(passages_to_cluster)]
             doc_features = model.tokenize(passages_to_cluster)
-            batch_to_device(doc_features, model_device)
+            if self.use_model_device:
+                batch_to_device(doc_features, model_device)
             doc_embeddings = model(doc_features)['sentence_embedding']
             embeddings_dist_mat = self.euclid_dist(doc_embeddings)
             cl = AgglomerativeClustering(n_clusters=torch.unique(true_label).numel(), affinity='precomputed', linkage='average')
@@ -49,6 +51,6 @@ class ClusterEvaluator(SentenceEvaluator):
         mean_nmi = np.mean(np.array(nmi_scores))
         mean_ami = np.mean(np.array(ami_scores))
         print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f\n" % (mean_rand, mean_nmi, mean_ami), flush=True)
-        #if torch.cuda.is_available():
-        #    model.to(model_device)
+        if not self.use_model_device:
+            model.to(model_device)
         return mean_rand

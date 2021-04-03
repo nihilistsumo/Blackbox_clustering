@@ -29,7 +29,7 @@ np.random.seed(42)
 from clearml import Task
 
 def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps,
-                               num_epochs, warmup_frac, lambda_val, reg, beta, loss_name, model_name='distilbert-base-uncased', out_features=256):
+                               num_epochs, warmup_frac, lambda_val, reg, beta, loss_name, use_model_device, model_name='distilbert-base-uncased', out_features=256):
     task = Task.init(project_name='BB Clustering', task_name='bbclustering_fixed_lambda')
     config_dict = {'lambda_val': lambda_val, 'reg': reg}
     config_dict = task.connect(config_dict)
@@ -66,8 +66,8 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluste
 
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     # train_dataloader2 = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
-    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
-    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
+    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data, use_model_device)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, use_model_device)
 
     warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 
@@ -86,7 +86,7 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluste
               logger=task.get_logger())
 
 def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps,
-                               num_epochs, warmup_frac, lambda_val, lambda_increment, reg, model_name='distilbert-base-uncased', out_features=256):
+                               num_epochs, warmup_frac, lambda_val, lambda_increment, reg, use_model_device, model_name='distilbert-base-uncased', out_features=256):
     task = Task.init(project_name='BB Clustering', task_name='bbclustering_inc_lambda')
     config_dict = {'lambda_val': lambda_val, 'reg': reg}
     config_dict = task.connect(config_dict)
@@ -116,8 +116,8 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_
 
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     # train_dataloader2 = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
-    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
-    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
+    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data, use_model_device)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, use_model_device)
 
     per_lambda_num_epochs = 1
     warmup_steps = int(len(train_dataloader) * per_lambda_num_epochs * warmup_frac)  # 10% of train data
@@ -141,7 +141,7 @@ def run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_
         print('Epoch: %3d, lambda: %.2f' % (e, lambda_val_curr))
 
 def run_triplets_model(train_triplets, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps, num_epochs, warmup_frac,
-                       model_name='distilbert-base-uncased', out_features=256):
+                       use_model_device, model_name='distilbert-base-uncased', out_features=256):
     task = Task.init(project_name='BB Clustering', task_name='bbclustering_triplets')
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -167,8 +167,8 @@ def run_triplets_model(train_triplets, val_cluster_data, test_cluster_data, outp
     train_dataloader = DataLoader(train_triplets, shuffle=True, batch_size=train_batch_size)
     train_loss = losses.TripletLoss(model=model)
 
-    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
-    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
+    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data, use_model_device)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, use_model_device)
 
     warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 
@@ -187,7 +187,7 @@ def run_triplets_model(train_triplets, val_cluster_data, test_cluster_data, outp
               logger=task.get_logger())
 
 def run_dbc(train_cluster_data, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps,
-                               num_epochs, warmup_frac, model_name='distilbert-base-uncased', out_features=256):
+                               num_epochs, warmup_frac, use_model_device, model_name='distilbert-base-uncased', out_features=256):
     task = Task.init(project_name='BB Clustering', task_name='dbc')
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -215,8 +215,8 @@ def run_dbc(train_cluster_data, val_cluster_data, test_cluster_data, output_path
 
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     # train_dataloader2 = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
-    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
-    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
+    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data, use_model_device)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, use_model_device)
 
     warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 
@@ -235,7 +235,7 @@ def run_dbc(train_cluster_data, val_cluster_data, test_cluster_data, output_path
               logger=task.get_logger())
 
 def run_binary_model(train_pairs, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps, num_epochs, warmup_frac,
-                       model_name='distilbert-base-uncased', out_features=256):
+                       use_model_device, model_name='distilbert-base-uncased', out_features=256):
     task = Task.init(project_name='BB Clustering', task_name='bbclustering_pairs')
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -262,8 +262,8 @@ def run_binary_model(train_pairs, val_cluster_data, test_cluster_data, output_pa
     train_dataloader = DataLoader(train_pairs, shuffle=True, batch_size=train_batch_size)
     train_loss = BinaryLoss(model=model)
 
-    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data)
-    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
+    evaluator = ClusterEvaluator.from_input_examples(val_cluster_data, use_model_device)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, use_model_device)
 
     warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 

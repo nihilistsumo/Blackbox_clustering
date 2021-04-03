@@ -51,7 +51,7 @@ def evaluate_treccar(model_path, test_art_qrels, test_top_qrels, test_hier_qrels
         test_evaluator = ClusterEvaluator.from_input_examples(test_top_cluster_data)
         model.evaluate(test_evaluator)
 
-def evaluate_ng20(model_path, test_cluster_data):
+def evaluate_ng20(model_path, test_cluster_data, gpu_eval):
     if torch.cuda.is_available():
         print('CUDA is available')
         device = torch.device('cuda')
@@ -60,7 +60,7 @@ def evaluate_ng20(model_path, test_cluster_data):
         device = torch.device('cpu')
     model = SentenceTransformer(model_path)
     model.to(device)
-    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
+    test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, gpu_eval)
     model.evaluate(test_evaluator)
 
 def main():
