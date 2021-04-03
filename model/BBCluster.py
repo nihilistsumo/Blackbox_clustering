@@ -341,7 +341,7 @@ class BinaryLoss(nn.Module):
         distance_pos = pair_distances * labels
         distance_neg = pair_distances * (1-labels)
 
-        losses = F.relu(distance_pos - distance_neg + self.triplet_margin)
+        losses = F.relu(distance_pos - distance_neg + self.margin)
         return losses.mean()
 
 ####################################################
