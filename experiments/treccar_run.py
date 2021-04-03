@@ -292,6 +292,7 @@ def main():
     parser.add_argument('-ep', '--num_epoch', type=int, default=1)
     parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
+    parser.add_argument('--gpu_eval', default=False, action='store_true')
     parser.add_argument('-ex', '--exp_type', default='bbfix')
     parser.add_argument('-exl', '--exp_level', default='top')
     args = parser.parse_args()
@@ -312,6 +313,7 @@ def main():
     epochs = args.num_epoch
     warmup_fraction = args.warmup
     eval_steps = args.eval_steps
+    gpu_eval = args.gpu_eval
     experiment_type = args.exp_type
     experiment_level = args.exp_level
     train_art_qrels = input_dir + '/' + train_in + '-article.qrels'
@@ -356,15 +358,15 @@ def main():
 
     if experiment_type == 'bbfix':
         run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size,
-                                   eval_steps, epochs, warmup_fraction, lambda_val, reg, beta, loss_name, model_name)
+                                   eval_steps, epochs, warmup_fraction, lambda_val, reg, beta, loss_name, gpu_eval, model_name)
     elif experiment_type == 'bbinc':
         run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path,
                                          batch_size, eval_steps, epochs, warmup_fraction, lambda_val, lambda_increment,
-                                         reg, model_name)
+                                         reg, gpu_eval, model_name)
     elif experiment_type == 'trip':
         train_triples = get_frac_triples(train_cluster_data, triple_frac)
         run_triplets_model(train_triples, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps,
-                           epochs, warmup_fraction, model_name)
+                           epochs, warmup_fraction, gpu_eval, model_name)
 
 if __name__ == '__main__':
     main()

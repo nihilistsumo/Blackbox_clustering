@@ -11,9 +11,11 @@ import numpy as np
 parser = argparse.ArgumentParser(description='Eval 20 news groups experiments')
 parser.add_argument('-tp', '--test_data')
 parser.add_argument('-mp', '--model_paths', nargs='+')
+parser.add_argument('--gpu_eval', default=False, action='store_true')
 args = parser.parse_args()
 test_data_path = args.test_data
 model_paths = args.model_paths
+gpu_eval = args.gpu_eval
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -41,7 +43,7 @@ mean_nmi = np.mean(np.array(nmi_scores))
 mean_ami = np.mean(np.array(ami_scores))
 print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f\n" % (mean_rand, mean_nmi, mean_ami), flush=True)
 
-test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
+test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, gpu_eval)
 for mp in model_paths:
     m = SentenceTransformer(mp)
     m.to(device)

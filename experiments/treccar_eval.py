@@ -9,10 +9,12 @@ parser = argparse.ArgumentParser(description='Eval treccar experiments')
 parser.add_argument('-ip', '--input_dir')
 parser.add_argument('-lv', '--level', default='top')
 parser.add_argument('-mp', '--model_paths', nargs='+')
+parser.add_argument('--gpu_eval', default=False, action='store_true')
 args = parser.parse_args()
 input_dir = args.input_dir
 level = args.level
 model_paths = args.model_paths
+gpu_eval = args.gpu_eval
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -31,7 +33,7 @@ if level == 'top':
     test_cluster_data = test_top_cluster_data
 else:
     test_cluster_data = test_hier_cluster_data
-test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data)
+test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, gpu_eval)
 for mp in model_paths:
     m = SentenceTransformer(mp)
     m.to(device)
