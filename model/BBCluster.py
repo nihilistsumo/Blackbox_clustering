@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torch.optim import Optimizer
 from torch import Tensor
+import torch.nn.functional as F
 from typing import Iterable, Dict, Tuple, Type, Callable
 from sklearn.cluster import AgglomerativeClustering, SpectralClustering
 import os
@@ -323,6 +324,24 @@ class DBCLossModel(nn.Module):
         mean_norm_similar_dist_squared = (embeddings_dist_mats * embeddings_dist_mats * true_adjacency_mats).sum() / true_adjacency_mats.sum()
 
         return mean_norm_similar_dist_squared
+
+class BinaryLoss(nn.Module):
+
+    def __init__(self, model: SentenceTransformer, margin: float = 5):
+        super(BinaryLoss, self).__init__()
+        self.model = model
+        self.margin = margin
+
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+        vecs = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
+
+        vecs1, vecs2 = vecs
+        pair_distances = lambda x, y: F.pairwise_distance(vecs1, vecs2, p=2)
+        distance_pos = pair_distances * labels
+        distance_neg = pair_distances * (1-labels)
+
+        losses = F.relu(distance_pos - distance_neg + self.triplet_margin)
+        return losses.mean()
 
 ####################################################
 # More experiments required for spectral clustering

@@ -22,12 +22,33 @@ from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
 from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel
 from experiments.train_model import run_triplets_model, run_fixed_lambda_bbcluster, run_incremental_lambda_bbcluster, \
-    run_dbc
+    run_dbc, run_binary_model
 from experiments.eval_model import evaluate_ng20
 import argparse
 random.seed(42)
 torch.manual_seed(42)
 np.random.seed(42)
+
+def get_pairs(cluster_data, balanced=True):
+    pairs = []
+    for c in trange(len(cluster_data)):
+        text = cluster_data[c].texts
+        t = list(cluster_data[c].label)
+        pos_pairs, neg_pairs = [], []
+        for i in range(len(t)-1):
+            for j in range(i+1, len(t)):
+                if t[i] == t[j]:
+                    pos_pairs.append(InputExample(texts=[text[i], text[j]], label=1))
+                else:
+                    neg_pairs.append(InputExample(texts=[text[i], text[j]], label=0))
+        if balanced:
+            neg_pairs = random.sample(neg_pairs, len(pos_pairs))
+        pairs_loc = pos_pairs + neg_pairs
+        random.shuffle(pairs_loc)
+        pairs += pairs_loc
+    print('No of train pairs: %2d' % len(pairs))
+
+    return pairs
 
 def get_frac_triples(cluster_data, num_triples_frac):
     frac_triples = []
@@ -91,6 +112,7 @@ def main():
     parser.add_argument('-ep', '--num_epoch', type=int, default=1)
     parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
+    parser.add_argument('-bl', '--balanced', type=bool, default=True)
     parser.add_argument('-ex', '--exp_type', default='bbfix')
     args = parser.parse_args()
     output_path = args.output_model_path
@@ -108,6 +130,7 @@ def main():
     epochs = args.num_epoch
     warmup_fraction = args.warmup
     eval_steps = args.eval_steps
+    balanced = args.balanced
     experiment_type = args.exp_type
 
     print('Preparing cluster data')
@@ -127,6 +150,11 @@ def main():
         run_triplets_model(train_triples, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction, model_name)
     elif experiment_type == 'dbc':
         run_dbc(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction, model_name)
+    elif experiment_type == 'bin':
+        train_pairs = get_pairs(train_cluster_data, balanced)
+        run_binary_model(train_pairs, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs,
+                         warmup_fraction, model_name)
+
     evaluate_ng20(output_path, test_cluster_data)
 
 if __name__ == '__main__':
