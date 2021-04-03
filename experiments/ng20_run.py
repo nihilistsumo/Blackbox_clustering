@@ -29,7 +29,7 @@ random.seed(42)
 torch.manual_seed(42)
 np.random.seed(42)
 
-def get_pairs(cluster_data, balanced=True):
+def get_pairs(cluster_data, balanced):
     pairs = []
     for c in trange(len(cluster_data)):
         text = cluster_data[c].texts
