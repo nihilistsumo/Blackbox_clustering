@@ -37,7 +37,7 @@ class CustomSentenceTransformer(SentenceTransformer):
             show_progress_bar: bool = True,
             logger: Logger = None
             ):
-        #tensorboard_writer = SummaryWriter('./tensorboard_logs')
+        tensorboard_writer = SummaryWriter('./tensorboard_logs')
         if use_amp:
             from torch.cuda.amp import autocast
             scaler = torch.cuda.amp.GradScaler()
@@ -147,14 +147,14 @@ class CustomSentenceTransformer(SentenceTransformer):
                 global_step += 1
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    #tensorboard_writer.add_scalar('training_loss', running_loss_0/evaluation_steps, global_step)
-                    logger.report_scalar('Loss', 'training_loss', iteration=global_step, value=running_loss_0/evaluation_steps)
+                    tensorboard_writer.add_scalar('training_loss', running_loss_0/evaluation_steps, global_step)
+                    #logger.report_scalar('Loss', 'training_loss', iteration=global_step, value=running_loss_0/evaluation_steps)
                     running_loss_0 = 0.0
                     #self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
                     if evaluator is not None:
                         score = evaluator(self, output_path=output_path, epoch=epoch, steps=training_steps)
-                        #tensorboard_writer.add_scalar('val_ARI', score, global_step)
-                        logger.report_scalar('Training progress', 'val_ARI', iteration=global_step, value=score)
+                        tensorboard_writer.add_scalar('val_ARI', score, global_step)
+                        #logger.report_scalar('Training progress', 'val_ARI', iteration=global_step, value=score)
                         if callback is not None:
                             callback(score, epoch, training_steps)
                         if score > self.best_score:
@@ -170,8 +170,8 @@ class CustomSentenceTransformer(SentenceTransformer):
             #logger.report_scalar('Loss', 'training_loss', iteration=global_step, value=running_loss_0 / evaluation_steps)
             if evaluator is not None:
                 score = evaluator(self, output_path=output_path, epoch=epoch, steps=training_steps)
-                #tensorboard_writer.add_scalar('val_ARI', score, global_step)
-                logger.report_scalar('Training progress', 'val_ARI', iteration=global_step, value=score)
+                tensorboard_writer.add_scalar('val_ARI', score, global_step)
+                #logger.report_scalar('Training progress', 'val_ARI', iteration=global_step, value=score)
                 if callback is not None:
                     callback(score, epoch, training_steps)
                 if score > self.best_score:
@@ -189,8 +189,8 @@ class CustomSentenceTransformer(SentenceTransformer):
                     self.to(device)
                 else:
                     test_ari = best_model.evaluate(test_evaluator)
-                #tensorboard_writer.add_scalar('test_ARI', test_ari, epoch)
-                logger.report_scalar('Training progress', 'test_ARI', iteration=global_step, value=test_ari)
+                tensorboard_writer.add_scalar('test_ARI', test_ari, global_step)
+                #logger.report_scalar('Training progress', 'test_ARI', iteration=global_step, value=test_ari)
 
         if evaluator is None and output_path is not None:  # No evaluator, but output path: save final model version
             self.save(output_path)
