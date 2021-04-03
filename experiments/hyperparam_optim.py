@@ -51,14 +51,14 @@ def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda
         execution_queue='default',
         # Optional: Limit the execution time of a single experiment, in minutes.
         # (this is optional, and if using  OptimizerBOHB, it is ignored)
-        time_limit_per_job=60.,
+        time_limit_per_job=120.,
         # Check the experiments every 6 seconds is way too often, we should probably set it to 5 min,
         # assuming a single experiment is usually hours...
         pool_period_min=check_exp_period,
         # set the maximum number of jobs to launch for the optimization, default (None) unlimited
         # If OptimizerBOHB is used, it defined the maximum budget in terms of full jobs
         # basically the cumulative number of iterations will not exceed total_max_jobs * max_iteration_per_job
-        total_max_jobs=10,
+        total_max_jobs=None,
         # This is only applicable for OptimizerBOHB and ignore by the rest
         # set the minimum number of iterations for an experiment, before early stopping
         min_iteration_per_job=100,
@@ -67,7 +67,6 @@ def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda
         max_iteration_per_job=10000
     )
 
-    # report every 12 seconds, this is way too often, but we are testing here J
     an_optimizer.set_report_period(check_exp_period)
     # start the optimization process, callback function to be called every time an experiment is completed
     # this function returns immediately
