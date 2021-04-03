@@ -331,12 +331,13 @@ class BinaryLoss(nn.Module):
         super(BinaryLoss, self).__init__()
         self.model = model
         self.margin = margin
+        self.distance_metric = lambda x, y: F.pairwise_distance(x, y, p=2)
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         vecs = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
 
         vecs1, vecs2 = vecs
-        pair_distances = lambda x, y: F.pairwise_distance(vecs1, vecs2, p=2)
+        pair_distances = self.distance_metric(vecs1, vecs2)
         distance_pos = pair_distances * labels
         distance_neg = pair_distances * (1-labels)
 
