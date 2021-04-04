@@ -292,6 +292,49 @@ class BBClusterLossModel(nn.Module):
         #print('Loss: '+str(loss.device))
         return loss
 
+class BBClusterLossReluRegModel(nn.Module):
+
+    def __init__(self, model: SentenceTransformer, device, lambda_val: float, reg_const: float):
+
+        super(BBClusterLossReluRegModel, self).__init__()
+        self.model = model
+        self.lambda_val = lambda_val
+        self.reg = reg_const
+        self.margin = 5.0
+        self.optim = OptimCluster()
+        self.device = device
+
+    def true_adj_mat(self, label):
+        n = label.numel()
+        adj_mat = torch.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                if i == j or label[i] == label[j]:
+                    adj_mat[i][j] = 1.0
+        return adj_mat
+
+    def forward(self, passage_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+
+        batch_size = labels.shape[0]
+        n = labels.shape[1]
+        ks = [torch.unique(labels[i]).numel() for i in range(batch_size)]
+        true_adjacency_mats = torch.stack([self.true_adj_mat(labels[i]) for i in range(batch_size)]).to(self.device)
+
+        embeddings = torch.stack([self.model(passages)['sentence_embedding'] for passages in passage_features], dim=1)
+        embeddings_dist_mats = torch.stack([euclid_dist(embeddings[i]) for i in range(batch_size)])
+
+        mean_similar_dist = (embeddings_dist_mats * true_adjacency_mats).sum() / true_adjacency_mats.sum()
+        mean_dissimilar_dist = (embeddings_dist_mats * (1.0 - true_adjacency_mats)).sum() / (
+                    1 - true_adjacency_mats).sum()
+        adjacency_mats = self.optim.apply(embeddings_dist_mats, self.lambda_val, ks).to(self.device)
+
+        weighted_err_mats = adjacency_mats * (1.0 - true_adjacency_mats) + (1.0 - adjacency_mats) * true_adjacency_mats
+        weighted_err_mean = weighted_err_mats.mean(dim=0).sum()
+
+        loss = weighted_err_mean + self.reg*F.relu(mean_similar_dist - mean_dissimilar_dist + self.margin)
+
+        return loss
+
 class DBCLossModel(nn.Module):
 
     def __init__(self, model: SentenceTransformer, device):
