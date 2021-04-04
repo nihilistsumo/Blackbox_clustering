@@ -22,7 +22,7 @@ from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
 from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel
 from experiments.train_model import run_triplets_model, run_fixed_lambda_bbcluster, run_incremental_lambda_bbcluster, \
-    run_dbc, run_binary_model
+    run_dbc, run_binary_model, run_fixed_lambda_relu_reg_bbcluster
 from experiments.eval_model import evaluate_ng20
 import argparse
 random.seed(42)
@@ -145,6 +145,9 @@ def main():
 
     if experiment_type == 'bbfix':
         run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
+                               lambda_val, reg, beta, loss_name, gpu_eval, model_name)
+    elif experiment_type == 'bbfixrelu':
+        run_fixed_lambda_relu_reg_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
                                lambda_val, reg, beta, loss_name, gpu_eval, model_name)
     elif experiment_type == 'bbinc':
         run_incremental_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs, warmup_fraction,
