@@ -17,7 +17,8 @@ def job_complete_callback(
     if job_id == top_performance_job_id:
         print('WOOT WOOT we broke the record! Objective reached {}'.format(objective_value))
 
-def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda_step, reg_min, reg_max, reg_step, check_exp_period, task_id=None):
+def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda_step, reg_min, reg_max, reg_step,
+                         check_exp_period, min_iter_per_job, max_iter_per_job, task_id=None):
     # Connecting CLEARML
     task = Task.init(project_name='BBcluster Hyper-Parameter Optimization',
                      task_name='Automatic Hyper-Parameter Optimization',
@@ -61,10 +62,10 @@ def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda
         total_max_jobs=None,
         # This is only applicable for OptimizerBOHB and ignore by the rest
         # set the minimum number of iterations for an experiment, before early stopping
-        min_iteration_per_job=100,
+        min_iteration_per_job=min_iter_per_job,
         # Set the maximum number of iterations for an experiment to execute
         # (This is optional, unless using OptimizerBOHB where this is a must)
-        max_iteration_per_job=10000
+        max_iteration_per_job=max_iter_per_job
     )
 
     an_optimizer.set_report_period(check_exp_period)
@@ -96,6 +97,8 @@ def main():
     parser.add_argument('-rx', '--reg_max', type=float, default=10.0)
     parser.add_argument('-rs', '--reg_step', type=float, default=0.2)
     parser.add_argument('-ep', '--report_period', type=float, default=1.0)
+    parser.add_argument('-mi', '--min_iter', type=int, default=100)
+    parser.add_argument('-xi', '--max_iter', type=int, default=1000)
     args = parser.parse_args()
     project_name = args.project_name
     task_name = args.task_name
@@ -107,8 +110,11 @@ def main():
     rmax = args.reg_max
     rstep = args.reg_step
     report_period = args.report_period
+    min_iter_per_job = args.min_iter
+    max_iter_per_job = args.max_iter
 
-    run_hyperparam_optim(project_name, task_name, lmin, lmax, lstep, rmin, rmax, rstep, report_period, task_id)
+    run_hyperparam_optim(project_name, task_name, lmin, lmax, lstep, rmin, rmax, rstep, report_period, task_id,
+                         min_iter_per_job, max_iter_per_job)
 
 if __name__ == '__main__':
     main()
