@@ -113,8 +113,8 @@ def main():
     min_iter_per_job = args.min_iter
     max_iter_per_job = args.max_iter
 
-    run_hyperparam_optim(project_name, task_name, lmin, lmax, lstep, rmin, rmax, rstep, report_period, task_id,
-                         min_iter_per_job, max_iter_per_job)
+    run_hyperparam_optim(project_name, task_name, lmin, lmax, lstep, rmin, rmax, rstep, report_period,
+                         min_iter_per_job, max_iter_per_job, task_id)
 
 if __name__ == '__main__':
     main()
