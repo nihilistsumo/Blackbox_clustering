@@ -14,9 +14,9 @@ def euclid_dist(x):
 
 def get_eval_scores(model, cluster_data):
     rand_scores, nmi_scores, ami_scores = {}, {}, {}
-    pages, passages, labels = [], [], []
+    pages = list(np.arange(len(cluster_data)))
+    passages, labels = [], [], []
     for sample in cluster_data:
-        pages.append(sample.qid)
         passages.append(sample.texts)
         labels.append(torch.from_numpy(sample.label))
     for i in trange(len(passages), desc="Evaluating", smoothing=0.05):
@@ -28,9 +28,9 @@ def get_eval_scores(model, cluster_data):
         cl = AgglomerativeClustering(n_clusters=torch.unique(true_label).numel(), affinity='precomputed',
                                      linkage='average')
         cluster_label = cl.fit_predict(embeddings_dist_mat.detach().cpu().numpy())
-        rand_scores[pages[i]] = adjusted_rand_score(true_label.numpy(), cluster_label)
-        nmi_scores[pages[i]] = normalized_mutual_info_score(true_label.numpy(), cluster_label)
-        ami_scores[pages[i]] = adjusted_mutual_info_score(true_label.numpy(), cluster_label)
+        rand_scores['Page'+str(pages[i])] = adjusted_rand_score(true_label.numpy(), cluster_label)
+        nmi_scores['Page'+str(pages[i])] = normalized_mutual_info_score(true_label.numpy(), cluster_label)
+        ami_scores['Page'+str(pages[i])] = adjusted_mutual_info_score(true_label.numpy(), cluster_label)
     print('Page\t\tAdj RAND\t\tNMI\t\tAMI')
     for p in rand_scores.keys():
         print(p+'\t\t%.4f\t\t%.4f\t\t%.4f' % (rand_scores[p], nmi_scores[p], ami_scores[p]))
