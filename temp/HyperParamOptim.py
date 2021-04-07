@@ -78,6 +78,7 @@ parser.add_argument('-lm', '--lambda_min', type=float, default=20.0)
 parser.add_argument('-lx', '--lambda_max', type=float, default=200.0)
 parser.add_argument('-rm', '--reg_min', type=float, default=0.0)
 parser.add_argument('-rx', '--reg_max', type=float, default=10.0)
+parser.add_argument('-tf', '--train_data_fraction', type=float, default=-1)
 parser.add_argument('--gpu_eval', default=False, action='store_true')
 args = parser.parse_args()
 
@@ -90,6 +91,7 @@ REG_MIN = args.reg_min
 REG_MAX = args.reg_max
 NUM_EPOCHS_PER_TRIAL = args.num_epoch
 use_model_device = args.gpu_eval
+train_fraction = args.train_data_fraction
 if args.dataset == 'trec':
     input_dir = args.input_dir
     train_in = args.train_input
@@ -114,6 +116,8 @@ if args.dataset == 'trec':
         train_cluster_data, val_cluster_data = train_hier_cluster_data, val_hier_cluster_data
 elif args.dataset == 'ng20':
     train_cluster_data, val_cluster_data, _ = prepare_cluster_data(num_doc, 1, val_samples)
+if train_fraction > 0:
+    train_cluster_data = random.sample(train_cluster_data, int(len(train_cluster_data)*train_fraction))
 
 study = optuna.create_study(direction='maximize')
 study.optimize(objective, n_trials=100)
