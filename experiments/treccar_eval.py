@@ -1,7 +1,7 @@
 import argparse
 import pickle
 import torch
-from sentence_transformers import SentenceTransformer
+from model.BBCluster import CustomSentenceTransformer
 from util.Evaluator import ClusterEvaluator
 from experiments.treccar_run import prepare_cluster_data2
 
@@ -35,7 +35,7 @@ else:
     test_cluster_data = test_hier_cluster_data
 test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, gpu_eval)
 for mp in model_paths:
-    m = SentenceTransformer(mp)
+    m = CustomSentenceTransformer(mp)
     m.to(device)
     print('Model: '+mp.split('/')[len(mp.split('/'))-1])
     m.evaluate(test_evaluator)
