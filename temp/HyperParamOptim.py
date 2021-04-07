@@ -17,7 +17,7 @@ from experiments.ng20_run import prepare_cluster_data
 
 def _run_fixed_lambda_bbcluster(train_batch_size, num_epochs, lambda_val, reg, use_model_device, warmup_frac=0.1,
                                 model_name='distilbert-base-uncased', out_features=256):
-    exp_task = Task.init(project_name='Optuna Hyperparam optim', task_name='trial')
+    exp_task = Task.create(project_name='Optuna Hyperparam optim', task_name='trial')
     config_dict = {'lambda_val': lambda_val, 'reg': reg}
     config_dict = task.connect(config_dict)
     if torch.cuda.is_available():
