@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from util.Evaluator import ClusterEvaluator
 import optuna
 import numpy as np
@@ -14,6 +15,8 @@ from sentence_transformers import models
 from model.BBCluster import CustomSentenceTransformer, BBClusterLossModel
 from experiments.treccar_run import prepare_cluster_data_train_only, prepare_cluster_data2
 from experiments.ng20_run import prepare_cluster_data
+
+tensorboard_writer = SummaryWriter('./tensorboard_logs')
 
 def _run_fixed_lambda_bbcluster(train_batch_size, num_epochs, lambda_val, reg, use_model_device, warmup_frac=0.1,
                                 model_name='distilbert-base-uncased', out_features=256):
@@ -59,7 +62,9 @@ def objective(trial):
     lambda_val = trial.suggest_float('lambda_val', LAMBDA_MIN, LAMBDA_MAX)
     reg = trial.suggest_float('reg', REG_MIN, REG_MAX)
     train_batch_size = trial.suggest_int('train_batch_size', 1, 2)
-    return _run_fixed_lambda_bbcluster(train_batch_size, NUM_EPOCHS_PER_TRIAL, lambda_val, reg, use_model_device)
+    ari = _run_fixed_lambda_bbcluster(train_batch_size, NUM_EPOCHS_PER_TRIAL, lambda_val, reg, use_model_device)
+    tensorboard_writer.add_scalar('val_ARI', ari)
+    return ari
 
 parser = argparse.ArgumentParser(description='Run hyperparameter optimization using Optuna')
 parser.add_argument('-dt', '--dataset', default='trec')
