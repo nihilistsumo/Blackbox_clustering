@@ -18,7 +18,7 @@ def job_complete_callback(
         print('WOOT WOOT we broke the record! Objective reached {}'.format(objective_value))
 
 def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda_step, reg_min, reg_max, reg_step,
-                         check_exp_period, min_iter_per_job, max_iter_per_job, task_id=None):
+                         check_exp_period, min_iter_per_job, max_iter_per_job, time_limit_per_job, task_id=None):
     # Connecting CLEARML
     task = Task.init(project_name='BBcluster Hyper-Parameter Optimization',
                      task_name='Automatic Hyper-Parameter Optimization',
@@ -52,7 +52,7 @@ def run_hyperparam_optim(project_name, task_name, lambda_min, lambda_max, lambda
         execution_queue='default',
         # Optional: Limit the execution time of a single experiment, in minutes.
         # (this is optional, and if using  OptimizerBOHB, it is ignored)
-        time_limit_per_job=120.,
+        time_limit_per_job=time_limit_per_job,
         # Check the experiments every 6 seconds is way too often, we should probably set it to 5 min,
         # assuming a single experiment is usually hours...
         pool_period_min=check_exp_period,
@@ -99,6 +99,7 @@ def main():
     parser.add_argument('-ep', '--report_period', type=float, default=1.0)
     parser.add_argument('-mi', '--min_iter', type=int, default=100)
     parser.add_argument('-xi', '--max_iter', type=int, default=1000)
+    parser.add_argument('-tl', '--time_limit_job', type=float, default=30.0)
     args = parser.parse_args()
     project_name = args.project_name
     task_name = args.task_name
@@ -112,9 +113,10 @@ def main():
     report_period = args.report_period
     min_iter_per_job = args.min_iter
     max_iter_per_job = args.max_iter
+    time_limit_per_job = args.time_limit_job
 
     run_hyperparam_optim(project_name, task_name, lmin, lmax, lstep, rmin, rmax, rstep, report_period,
-                         min_iter_per_job, max_iter_per_job, task_id)
+                         min_iter_per_job, max_iter_per_job, time_limit_per_job, task_id)
 
 if __name__ == '__main__':
     main()
