@@ -63,7 +63,7 @@ def objective(trial):
 
 parser = argparse.ArgumentParser(description='Run hyperparameter optimization using Optuna')
 parser.add_argument('-dt', '--dataset', default='trec')
-parser.add_argument('-nd', '--num_doc')
+parser.add_argument('-nd', '--num_doc', type=int, default=30)
 parser.add_argument('-vs', '--val_samples', type=int, default=20)
 
 ### TRECCAR only ###
