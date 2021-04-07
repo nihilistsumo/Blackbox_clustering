@@ -15,7 +15,7 @@ def euclid_dist(x):
 def get_eval_scores(model, cluster_data):
     rand_scores, nmi_scores, ami_scores = {}, {}, {}
     pages = list(np.arange(len(cluster_data)))
-    passages, labels = [], [], []
+    passages, labels = [], []
     for sample in cluster_data:
         passages.append(sample.texts)
         labels.append(torch.from_numpy(sample.label))
