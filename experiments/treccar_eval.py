@@ -4,24 +4,47 @@ import torch
 from model.BBCluster import CustomSentenceTransformer
 from util.Evaluator import ClusterEvaluator
 from experiments.treccar_run import prepare_cluster_data2
+from tqdm.autonotebook import trange
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score
+
+
+def euclid_dist(x):
+    dist_mat = torch.norm(x[:, None] - x, dim=2, p=2)
+    return dist_mat
+
+def get_eval_scores(model, cluster_data):
+    rand_scores, nmi_scores, ami_scores = {}, {}, {}
+    pages, passages, labels = [], [], []
+    for sample in cluster_data:
+        pages.append(sample.qid)
+        passages.append(sample.texts)
+        labels.append(torch.from_numpy(sample.label))
+    for i in trange(len(passages), desc="Evaluating", smoothing=0.05):
+        passages_to_cluster = [passages[i][p] for p in range(len(passages[i])) if len(passages[i][p]) > 0]
+        true_label = labels[i][:len(passages_to_cluster)]
+        doc_features = model.tokenize(passages_to_cluster)
+        doc_embeddings = model(doc_features)['sentence_embedding']
+        embeddings_dist_mat = euclid_dist(doc_embeddings)
+        cl = AgglomerativeClustering(n_clusters=torch.unique(true_label).numel(), affinity='precomputed',
+                                     linkage='average')
+        cluster_label = cl.fit_predict(embeddings_dist_mat.detach().cpu().numpy())
+        rand_scores[pages[i]] = adjusted_rand_score(true_label.numpy(), cluster_label)
+        nmi_scores[pages[i]] = normalized_mutual_info_score(true_label.numpy(), cluster_label)
+        ami_scores[pages[i]] = adjusted_mutual_info_score(true_label.numpy(), cluster_label)
+    print('Page\t\tAdj RAND\t\tNMI\t\tAMI')
+    for p in rand_scores.keys():
+        print(p+'\t\t%.4f\t\t%.4f\t\t%.4f' % (rand_scores[p], nmi_scores[p], ami_scores[p]))
+    return rand_scores, nmi_scores, ami_scores
 
 parser = argparse.ArgumentParser(description='Eval treccar experiments')
 parser.add_argument('-ip', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
 parser.add_argument('-lv', '--level', default='top')
 parser.add_argument('-mp', '--model_paths', nargs='+')
-parser.add_argument('--gpu_eval', default=False, action='store_true')
 args = parser.parse_args()
 input_dir = args.input_dir
 level = args.level
 model_paths = args.model_paths
-gpu_eval = args.gpu_eval
-
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-    print('CUDA is available and using device: ' + str(device))
-else:
-    device = torch.device('cpu')
-    print('CUDA not available, using device: ' + str(device))
 
 test_art_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-article.qrels'
 test_top_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-toplevel.qrels'
@@ -36,6 +59,5 @@ else:
 test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, gpu_eval)
 for mp in model_paths:
     m = CustomSentenceTransformer(mp)
-    m.to(device)
     print('Model: '+mp.split('/')[len(mp.split('/'))-1])
-    m.evaluate(test_evaluator)
+    _ = get_eval_scores(m, test_cluster_data)
