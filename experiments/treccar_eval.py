@@ -6,7 +6,7 @@ from util.Evaluator import ClusterEvaluator
 from experiments.treccar_run import prepare_cluster_data2
 
 parser = argparse.ArgumentParser(description='Eval treccar experiments')
-parser.add_argument('-ip', '--input_dir')
+parser.add_argument('-ip', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
 parser.add_argument('-lv', '--level', default='top')
 parser.add_argument('-mp', '--model_paths', nargs='+')
 parser.add_argument('--gpu_eval', default=False, action='store_true')
