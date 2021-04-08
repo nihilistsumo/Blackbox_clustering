@@ -34,8 +34,7 @@ class CustomSentenceTransformer(SentenceTransformer):
             max_grad_norm: float = 1,
             use_amp: bool = False,
             callback: Callable[[float, int, int], None] = None,
-            show_progress_bar: bool = True,
-            logger: Logger = None
+            show_progress_bar: bool = True
             ):
         tensorboard_writer = SummaryWriter('./tensorboard_logs')
         if use_amp:

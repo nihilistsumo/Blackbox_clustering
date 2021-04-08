@@ -18,8 +18,8 @@ from experiments.ng20_run import prepare_cluster_data
 
 tensorboard_writer = SummaryWriter('./tensorboard_logs')
 
-def _run_fixed_lambda_bbcluster(train_batch_size, num_epochs, lambda_val, reg, use_model_device, warmup_frac=0.1,
-                                model_name='distilbert-base-uncased', out_features=256):
+def _run_fixed_lambda_bbcluster(train_batch_size, num_epochs, lambda_val, reg, use_model_device, eval_steps, out_path,
+                                warmup_frac=0.1, model_name='distilbert-base-uncased', out_features=256):
     exp_task = Task.create(project_name='Optuna Hyperparam optim', task_name='trial')
     config_dict = {'lambda_val': lambda_val, 'reg': reg}
     config_dict = task.connect(config_dict)
@@ -55,8 +55,11 @@ def _run_fixed_lambda_bbcluster(train_batch_size, num_epochs, lambda_val, reg, u
     model.fit(train_objectives=[(train_dataloader, loss_model)],
               epochs=num_epochs,
               warmup_steps=warmup_steps,
-              logger=exp_task.get_logger())
-    return evaluator(model)
+              evaluator=evaluator,
+              evaluation_steps=eval_steps,
+              output_path=out_path)
+    best_model = CustomSentenceTransformer(out_path)
+    return evaluator(best_model)
 
 def objective(trial):
     lambda_val = trial.suggest_float('lambda_val', LAMBDA_MIN, LAMBDA_MAX)
