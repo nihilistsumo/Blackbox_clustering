@@ -133,4 +133,4 @@ if train_fraction > 0:
     train_cluster_data = random.sample(train_cluster_data, int(len(train_cluster_data)*train_fraction))
 
 study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=100)
+study.optimize(objective, n_trials=100, n_jobs=10)
