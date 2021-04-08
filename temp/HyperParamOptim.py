@@ -65,7 +65,8 @@ def objective(trial):
     lambda_val = trial.suggest_float('lambda_val', LAMBDA_MIN, LAMBDA_MAX)
     reg = trial.suggest_float('reg', REG_MIN, REG_MAX)
     train_batch_size = trial.suggest_int('train_batch_size', 1, 2)
-    ari = _run_fixed_lambda_bbcluster(train_batch_size, NUM_EPOCHS_PER_TRIAL, lambda_val, reg, use_model_device)
+    ari = _run_fixed_lambda_bbcluster(train_batch_size, NUM_EPOCHS_PER_TRIAL, lambda_val, reg, use_model_device,
+                                      eval_steps, outpath)
     tensorboard_writer.add_scalar('val_ARI', ari)
     return ari
 
@@ -82,11 +83,13 @@ parser.add_argument('-lv', '--level', default='top')
 ####################
 
 parser.add_argument('-ep', '--num_epoch', type=int, default=2)
+parser.add_argument('-es', '--eval_steps', type=int, default=20)
 parser.add_argument('-lm', '--lambda_min', type=float, default=20.0)
 parser.add_argument('-lx', '--lambda_max', type=float, default=200.0)
 parser.add_argument('-rm', '--reg_min', type=float, default=0.0)
 parser.add_argument('-rx', '--reg_max', type=float, default=10.0)
 parser.add_argument('-tf', '--train_data_fraction', type=float, default=-1)
+parser.add_argument('-op', '--outdir')
 parser.add_argument('--gpu_eval', default=False, action='store_true')
 args = parser.parse_args()
 
@@ -98,8 +101,10 @@ LAMBDA_MAX = args.lambda_max
 REG_MIN = args.reg_min
 REG_MAX = args.reg_max
 NUM_EPOCHS_PER_TRIAL = args.num_epoch
+eval_steps = args.eval_steps
 use_model_device = args.gpu_eval
 train_fraction = args.train_data_fraction
+outpath = args.outdir + '/temp_trial.model'
 if args.dataset == 'trec':
     input_dir = args.input_dir
     train_in = args.train_input
