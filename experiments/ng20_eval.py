@@ -34,7 +34,7 @@ def get_eval_scores(model, cluster_data):
     print('Page\t\tAdj RAND\t\tNMI\t\tAMI')
     for p in rand_scores.keys():
         print(p+'\t\t%.4f\t\t%.4f\t\t%.4f' % (rand_scores[p], nmi_scores[p], ami_scores[p]))
-    print('mean ARI: %.4f, mean NMI: %.4f, mean ARI: %.4f' % (np.mean(np.array(list(rand_scores.values()))),
+    print('mean ARI: %.4f, mean NMI: %.4f, mean AMI: %.4f' % (np.mean(np.array(list(rand_scores.values()))),
                                                               np.mean(np.array(list(nmi_scores.values()))),
                                                               np.mean(np.array(list(ami_scores.values())))))
     return rand_scores, nmi_scores, ami_scores
