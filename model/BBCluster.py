@@ -159,6 +159,7 @@ class CustomSentenceTransformer(SentenceTransformer):
                         if score > self.best_score:
                             self.best_score = score
                             if save_best_model:
+                                print('Saving model at: '+output_path)
                                 self.save(output_path)
                     for loss_model in loss_models:
                         loss_model.zero_grad()
