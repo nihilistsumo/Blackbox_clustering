@@ -2,6 +2,7 @@ import argparse
 import pickle
 import torch
 from model.BBCluster import CustomSentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from experiments.treccar_run import prepare_cluster_data2
 from tqdm.autonotebook import trange
 from sklearn.cluster import AgglomerativeClustering
@@ -59,6 +60,21 @@ if level == 'top':
     test_cluster_data = test_top_cluster_data
 else:
     test_cluster_data = test_hier_cluster_data
+tfidf = TfidfVectorizer()
+rand_scores, nmi_scores, ami_scores = [], [], []
+for input_exmp in test_cluster_data:
+    labels = input_exmp.label
+    corpus = input_exmp.texts
+    vecs = tfidf.fit_transform(corpus).toarray()
+    cl = AgglomerativeClustering(n_clusters=len(set(labels)), linkage='average')
+    cl_labels = cl.fit_predict(vecs)
+    rand_scores.append(adjusted_rand_score(labels, cl_labels))
+    nmi_scores.append(normalized_mutual_info_score(labels, cl_labels))
+    ami_scores.append(adjusted_mutual_info_score(labels, cl_labels))
+mean_rand = np.mean(np.array(rand_scores))
+mean_nmi = np.mean(np.array(nmi_scores))
+mean_ami = np.mean(np.array(ami_scores))
+print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f\n" % (mean_rand, mean_nmi, mean_ami), flush=True)
 for mp in model_paths:
     m = CustomSentenceTransformer(mp)
     print('Model: '+mp.split('/')[len(mp.split('/'))-1])
