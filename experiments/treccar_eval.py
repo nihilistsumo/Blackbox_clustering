@@ -63,8 +63,9 @@ else:
 tfidf = TfidfVectorizer()
 rand_scores, nmi_scores, ami_scores = [], [], []
 for input_exmp in test_cluster_data:
-    labels = input_exmp.label
-    corpus = input_exmp.texts
+    n = len(input_exmp.pids) - input_exmp.pids.count('dummy')
+    labels = input_exmp.label[:n]
+    corpus = input_exmp.texts[:n]
     vecs = tfidf.fit_transform(corpus).toarray()
     cl = AgglomerativeClustering(n_clusters=len(set(labels)), linkage='average')
     cl_labels = cl.fit_predict(vecs)
