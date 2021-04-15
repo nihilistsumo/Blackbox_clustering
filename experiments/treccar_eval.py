@@ -37,9 +37,9 @@ def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anch
     print('Page\t\tAdj RAND\t\tNMI\t\tAMI')
     for p in rand_scores.keys():
         print(p+'\t\t%.4f\t\t%.4f\t\t%.4f' % (rand_scores[p], nmi_scores[p], ami_scores[p]))
-    mean_rand, mean_nmi, mean_ami = (np.mean(np.array(list(rand_scores.values()))),
-                                                              np.mean(np.array(list(nmi_scores.values()))),
-                                                              np.mean(np.array(list(ami_scores.values()))))
+    rand_arr, nmi_arr, ami_arr = (np.array(list(rand_scores.values())), np.array(list(nmi_scores.values())),
+                                    np.array(list(ami_scores.values())))
+    mean_rand, mean_nmi, mean_ami = (np.mean(rand_arr), np.mean(nmi_arr), np.mean(ami_arr))
     if anchor_rand is not None:
         rand_ttest, nmi_ttest, ami_ttest = (ttest_rel(anchor_rand, rand_scores), ttest_rel(anchor_nmi, nmi_scores),
                                             ttest_rel(anchor_ami, ami_scores))
@@ -47,7 +47,7 @@ def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anch
                                                                                        nmi_ttest, mean_ami, ami_ttest))
     else:
         print('mean ARI: %.4f, mean NMI: %.4f, mean AMI: %.4f' % (mean_rand, mean_nmi, mean_ami))
-    return rand_scores, nmi_scores, ami_scores
+    return rand_arr, nmi_arr, ami_arr
 
 parser = argparse.ArgumentParser(description='Eval treccar experiments')
 parser.add_argument('-ip', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
