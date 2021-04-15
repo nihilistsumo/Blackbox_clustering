@@ -41,8 +41,8 @@ def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anch
                                     np.array(list(ami_scores.values())))
     mean_rand, mean_nmi, mean_ami = (np.mean(rand_arr), np.mean(nmi_arr), np.mean(ami_arr))
     if anchor_rand is not None:
-        rand_ttest, nmi_ttest, ami_ttest = (ttest_rel(anchor_rand, rand_scores), ttest_rel(anchor_nmi, nmi_scores),
-                                            ttest_rel(anchor_ami, ami_scores))
+        rand_ttest, nmi_ttest, ami_ttest = (ttest_rel(anchor_rand, rand_arr), ttest_rel(anchor_nmi, nmi_arr),
+                                            ttest_rel(anchor_ami, ami_arr))
         print('mean ARI: %.4f (%.4f), mean NMI: %.4f (%.4f), mean AMI: %.4f (%.4f)' % (mean_rand, rand_ttest[1], mean_nmi,
                                                                                        nmi_ttest[1], mean_ami, ami_ttest[1]))
     else:
