@@ -8,13 +8,14 @@ from tqdm.autonotebook import trange
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score
 import numpy as np
+from scipy.stats import ttest_rel
 
 
 def euclid_dist(x):
     dist_mat = torch.norm(x[:, None] - x, dim=2, p=2)
     return dist_mat
 
-def get_eval_scores(model, cluster_data):
+def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anchor_ami=None):
     rand_scores, nmi_scores, ami_scores = {}, {}, {}
     pages, passages, labels = [], [], []
     for sample in cluster_data:
@@ -36,9 +37,16 @@ def get_eval_scores(model, cluster_data):
     print('Page\t\tAdj RAND\t\tNMI\t\tAMI')
     for p in rand_scores.keys():
         print(p+'\t\t%.4f\t\t%.4f\t\t%.4f' % (rand_scores[p], nmi_scores[p], ami_scores[p]))
-    print('mean ARI: %.4f, mean NMI: %.4f, mean ARI: %.4f' % (np.mean(np.array(list(rand_scores.values()))),
+    mean_rand, mean_nmi, mean_ami = (np.mean(np.array(list(rand_scores.values()))),
                                                               np.mean(np.array(list(nmi_scores.values()))),
-                                                              np.mean(np.array(list(ami_scores.values())))))
+                                                              np.mean(np.array(list(ami_scores.values()))))
+    if anchor_rand is not None:
+        rand_ttest, nmi_ttest, ami_ttest = (ttest_rel(anchor_rand, rand_scores), ttest_rel(anchor_nmi, nmi_scores),
+                                            ttest_rel(anchor_ami, ami_scores))
+        print('mean ARI: %.4f (%.4f), mean NMI: %.4f (%.4f), mean AMI: %.4f (%.4f)' % (mean_rand, rand_ttest, mean_nmi,
+                                                                                       nmi_ttest, mean_ami, ami_ttest))
+    else:
+        print('mean ARI: %.4f, mean NMI: %.4f, mean AMI: %.4f' % (mean_rand, mean_nmi, mean_ami))
     return rand_scores, nmi_scores, ami_scores
 
 parser = argparse.ArgumentParser(description='Eval treccar experiments')
@@ -61,7 +69,7 @@ if level == 'top':
 else:
     test_cluster_data = test_hier_cluster_data
 tfidf = TfidfVectorizer()
-rand_scores, nmi_scores, ami_scores = [], [], []
+rand_scores_tf, nmi_scores_tf, ami_scores_tf = [], [], []
 for input_exmp in test_cluster_data:
     n = len(input_exmp.pids) - input_exmp.pids.count('dummy')
     labels = input_exmp.label[:n]
@@ -69,14 +77,20 @@ for input_exmp in test_cluster_data:
     vecs = tfidf.fit_transform(corpus).toarray()
     cl = AgglomerativeClustering(n_clusters=len(set(labels)), linkage='average')
     cl_labels = cl.fit_predict(vecs)
-    rand_scores.append(adjusted_rand_score(labels, cl_labels))
-    nmi_scores.append(normalized_mutual_info_score(labels, cl_labels))
-    ami_scores.append(adjusted_mutual_info_score(labels, cl_labels))
-mean_rand = np.mean(np.array(rand_scores))
-mean_nmi = np.mean(np.array(nmi_scores))
-mean_ami = np.mean(np.array(ami_scores))
-print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f\n" % (mean_rand, mean_nmi, mean_ami), flush=True)
-for mp in model_paths:
+    rand_scores_tf.append(adjusted_rand_score(labels, cl_labels))
+    nmi_scores_tf.append(normalized_mutual_info_score(labels, cl_labels))
+    ami_scores_tf.append(adjusted_mutual_info_score(labels, cl_labels))
+mean_rand_tf = np.mean(np.array(rand_scores_tf))
+mean_nmi_tf = np.mean(np.array(nmi_scores_tf))
+mean_ami_tf = np.mean(np.array(ami_scores_tf))
+print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f\n" % (mean_rand_tf, mean_nmi_tf, mean_ami_tf), flush=True)
+anchor_rand, anchor_nmi, anchor_ami = [], [], []
+for i in range(len(model_paths)):
+    mp = model_paths[i]
     m = CustomSentenceTransformer(mp)
     print('Model: '+mp.split('/')[len(mp.split('/'))-1])
-    _ = get_eval_scores(m, test_cluster_data)
+    if i == 0:
+        print('This is the anchor model for paired ttest')
+        anchor_rand, anchor_nmi, anchor_ami = get_eval_scores(m, test_cluster_data)
+    else:
+        mean_rand, mean_nmi, mean_ami = get_eval_scores(m, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
