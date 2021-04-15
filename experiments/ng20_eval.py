@@ -82,4 +82,4 @@ for i in range(len(model_paths)):
         print('This is the anchor model for paired ttest')
         anchor_rand, anchor_nmi, anchor_ami = get_eval_scores(m, test_cluster_data)
     else:
-        rand_scores, nmi_scores, ami_scores = get_eval_scores(m, test_cluster_data)
+        rand_scores, nmi_scores, ami_scores = get_eval_scores(m, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
