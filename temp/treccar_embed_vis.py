@@ -80,7 +80,6 @@ for sample in test_cluster_data:
     ax2 = sns.scatterplot(x=pca_embeddings[:, 0], y=pca_embeddings[:, 1], hue=true_label, palette='deep')
     plt.show()
     '''
-    emb_dict[sample.qid]['vec'] = doc_embeddings_np
-    emb_dict[sample.qid]['label'] = true_label
+    emb_dict[sample.qid]['vec'] = {'vec': doc_embeddings_np, 'label': true_label}
 if outpath is not None:
     np.save(outpath, emb_dict)
