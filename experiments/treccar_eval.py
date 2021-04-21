@@ -98,4 +98,4 @@ for i in range(len(model_paths)):
 
 rand_ttest_tf, nmi_ttest_tf, ami_ttest_tf = (ttest_rel(anchor_rand, rand_scores_tf), ttest_rel(anchor_nmi, nmi_scores_tf),
                                             ttest_rel(anchor_ami, ami_scores_tf))
-print('\nTFIDF ttest pval ARI: %.5f, NMI: %.5f, AMI: %.5f' % (rand_ttest_tf, nmi_ttest_tf, ami_ttest_tf))
+print('\nTFIDF ttest pval ARI: %.5f, NMI: %.5f, AMI: %.5f' % (rand_ttest_tf[1], nmi_ttest_tf[1], ami_ttest_tf[1]))
