@@ -95,3 +95,7 @@ for i in range(len(model_paths)):
         anchor_rand, anchor_nmi, anchor_ami = get_eval_scores(m, test_cluster_data)
     else:
         mean_rand, mean_nmi, mean_ami = get_eval_scores(m, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
+
+rand_ttest_tf, nmi_ttest_tf, ami_ttest_tf = (ttest_rel(anchor_rand, rand_scores_tf), ttest_rel(anchor_nmi, nmi_scores_tf),
+                                            ttest_rel(anchor_ami, ami_scores_tf))
+print('\nTFIDF ttest pval ARI: %.5f, NMI: %.5f, AMI: %.5f' % (rand_ttest_tf, nmi_ttest_tf, ami_ttest_tf))
