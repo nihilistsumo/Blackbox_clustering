@@ -83,6 +83,7 @@ for input_exmp in test_cluster_data:
 mean_rand_tf = np.mean(np.array(rand_scores_tf))
 mean_nmi_tf = np.mean(np.array(nmi_scores_tf))
 mean_ami_tf = np.mean(np.array(ami_scores_tf))
+print('TFIDF')
 print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f\n" % (mean_rand_tf, mean_nmi_tf, mean_ami_tf), flush=True)
 anchor_rand, anchor_nmi, anchor_ami = [], [], []
 for i in range(len(model_paths)):
