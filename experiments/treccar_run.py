@@ -21,7 +21,8 @@ from collections import Counter
 from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
 from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel
-from experiments.train_model import run_triplets_model, run_fixed_lambda_bbcluster, run_incremental_lambda_bbcluster, run_dbc
+from experiments.train_model import run_triplets_model, run_fixed_lambda_bbcluster, run_incremental_lambda_bbcluster, run_dbc, run_binary_model
+from experiments.ng20_run import get_pairs
 import argparse
 random.seed(42)
 torch.manual_seed(42)
@@ -293,6 +294,7 @@ def main():
     parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
     parser.add_argument('--gpu_eval', default=False, action='store_true')
+    parser.add_argument('--balanced', default=False, action='store_true')
     parser.add_argument('-ex', '--exp_type', default='bbfix')
     parser.add_argument('-exl', '--exp_level', default='top')
     args = parser.parse_args()
@@ -314,6 +316,7 @@ def main():
     warmup_fraction = args.warmup
     eval_steps = args.eval_steps
     gpu_eval = args.gpu_eval
+    balanced = args.balanced
     experiment_type = args.exp_type
     experiment_level = args.exp_level
     train_art_qrels = input_dir + '/' + train_in + '-article.qrels'
@@ -370,6 +373,10 @@ def main():
     elif experiment_type == 'dbc':
         run_dbc(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs,
                 warmup_fraction, gpu_eval, model_name)
+    elif experiment_type == 'bin':
+        train_pairs = get_pairs(train_cluster_data, balanced)
+        run_binary_model(train_pairs, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs,
+                         warmup_fraction, gpu_eval, model_name)
 
 if __name__ == '__main__':
     main()
