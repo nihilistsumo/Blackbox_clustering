@@ -22,11 +22,33 @@ from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
 from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel
 from experiments.train_model import run_triplets_model, run_fixed_lambda_bbcluster, run_incremental_lambda_bbcluster, run_dbc, run_binary_model
-from experiments.ng20_run import get_pairs
 import argparse
 random.seed(42)
 torch.manual_seed(42)
 np.random.seed(42)
+
+def get_pairs(cluster_data, balanced):
+    pairs = []
+    if balanced:
+        print('Going to balance the datasets')
+    for c in trange(len(cluster_data)):
+        text = cluster_data[c].texts
+        t = list(cluster_data[c].label)
+        pos_pairs, neg_pairs = [], []
+        for i in range(len(t)-1):
+            for j in range(i+1, len(t)):
+                if t[i] == t[j]:
+                    pos_pairs.append(InputExample(texts=[text[i], text[j]], label=1))
+                else:
+                    neg_pairs.append(InputExample(texts=[text[i], text[j]], label=0))
+        if balanced:
+            neg_pairs = random.sample(neg_pairs, len(pos_pairs))
+        pairs_loc = pos_pairs + neg_pairs
+        random.shuffle(pairs_loc)
+        pairs += pairs_loc
+    print('No of train pairs: %2d' % len(pairs))
+
+    return pairs
 
 def get_trec_dat(art_qrels, top_qrels, hier_qrels):
     page_paras = {}
