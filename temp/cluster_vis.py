@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def viz_cluster(page, emb_dict_path):
-    emb_dict = np.load(emb_dict_path)
+    emb_dict = np.load(emb_dict_path, allow_pickle=True)
     vecs = emb_dict[()][page]['vec']
     labels = emb_dict[()][page]['label']
     print(vecs.shape)
