@@ -18,12 +18,12 @@ def pca(data, pc_count = None):
     U = np.dot(data, V)  # used to be dot(V.T, data.T).T
     return U, E, V
 
-def viz_cluster(page, emb_dict_path):
+def viz_cluster(page, emb_dict_path, s=5):
     emb_dict = np.load(emb_dict_path, allow_pickle=True)
     vecs = emb_dict[()][page]['vec']
     labels = emb_dict[()][page]['label']
     print(vecs.shape)
     pca_embeddings = pca(vecs, 2)[0]
-    ax = sns.scatterplot(x=pca_embeddings[:, 0], y=pca_embeddings[:, 1], hue=labels, palette='deep')
+    ax = sns.scatterplot(x=pca_embeddings[:, 0], y=pca_embeddings[:, 1], hue=labels, palette='deep', s=s)
     plt.title(page)
     plt.show()
