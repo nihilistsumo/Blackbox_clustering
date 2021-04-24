@@ -25,4 +25,5 @@ def viz_cluster(page, emb_dict_path):
     print(vecs.shape)
     pca_embeddings = pca(vecs, 2)[0]
     ax = sns.scatterplot(x=pca_embeddings[:, 0], y=pca_embeddings[:, 1], hue=labels, palette='deep')
+    plt.title(page)
     plt.show()
