@@ -9,6 +9,8 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score
 import numpy as np
 from scipy.stats import ttest_rel
+from sentence_transformers import models
+import torch.nn as nn
 
 
 def euclid_dist(x):
@@ -51,10 +53,12 @@ def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anch
 
 parser = argparse.ArgumentParser(description='Eval treccar experiments')
 parser.add_argument('-ip', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
+parser.add_argument('-rm', '--raw_model_name', default='distilbert-base-uncased')
 parser.add_argument('-lv', '--level', default='top')
 parser.add_argument('-mp', '--model_paths', nargs='+')
 args = parser.parse_args()
 input_dir = args.input_dir
+model_name = args.raw_model_name
 level = args.level
 model_paths = args.model_paths
 
@@ -85,6 +89,17 @@ mean_nmi_tf = np.mean(np.array(nmi_scores_tf))
 mean_ami_tf = np.mean(np.array(ami_scores_tf))
 print('TFIDF')
 print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f\n" % (mean_rand_tf, mean_nmi_tf, mean_ami_tf), flush=True)
+
+word_embedding_model = models.Transformer(model_name)
+pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
+                                   pooling_mode_mean_tokens=True,
+                                   pooling_mode_cls_token=False,
+                                   pooling_mode_max_tokens=False)
+doc_dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=256,
+                                   activation_function=nn.Tanh())
+
+raw_model = CustomSentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
+
 anchor_rand, anchor_nmi, anchor_ami = [], [], []
 for i in range(len(model_paths)):
     mp = model_paths[i]
@@ -95,6 +110,8 @@ for i in range(len(model_paths)):
         anchor_rand, anchor_nmi, anchor_ami = get_eval_scores(m, test_cluster_data)
     else:
         mean_rand, mean_nmi, mean_ami = get_eval_scores(m, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
+
+mean_rand, mean_nmi, mean_ami = get_eval_scores(raw_model, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
 
 rand_ttest_tf, nmi_ttest_tf, ami_ttest_tf = (ttest_rel(anchor_rand, rand_scores_tf), ttest_rel(anchor_nmi, nmi_scores_tf),
                                             ttest_rel(anchor_ami, ami_scores_tf))
