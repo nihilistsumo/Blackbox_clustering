@@ -82,7 +82,7 @@ pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension
                                    pooling_mode_mean_tokens=True,
                                    pooling_mode_cls_token=False,
                                    pooling_mode_max_tokens=False)
-doc_dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=out_features,
+doc_dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_dimension(), out_features=256,
                                    activation_function=nn.Tanh())
 
 raw_model = CustomSentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
