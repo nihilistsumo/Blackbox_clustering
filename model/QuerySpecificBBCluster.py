@@ -1,5 +1,5 @@
 from model.BBCluster import CustomSentenceTransformer, OptimCluster, euclid_dist
-from experiments.treccar_run import prepare_cluster_data_train_only, prepare_cluster_data
+from experiments.treccar_run import prepare_cluster_data_train_only, prepare_cluster_data2
 from util.Data import InputTRECCARExample
 import numpy as np
 import torch
@@ -43,11 +43,15 @@ class QuerySpecificClusterModel(nn.Module):
         elif scheduler == 'warmupconstant':
             return transformers.get_constant_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps)
         elif scheduler == 'warmuplinear':
-            return transformers.get_linear_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
+            return transformers.get_linear_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps,
+                                                                num_training_steps=t_total)
         elif scheduler == 'warmupcosine':
-            return transformers.get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
+            return transformers.get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps,
+                                                                num_training_steps=t_total)
         elif scheduler == 'warmupcosinewithhardrestarts':
-            return transformers.get_cosine_with_hard_restarts_schedule_with_warmup(optimizer, num_warmup_steps=warmup_steps, num_training_steps=t_total)
+            return transformers.get_cosine_with_hard_restarts_schedule_with_warmup(optimizer,
+                                                                                   num_warmup_steps=warmup_steps,
+                                                                                   num_training_steps=t_total)
         else:
             raise ValueError("Unknown scheduler {}".format(scheduler))
 
@@ -90,8 +94,10 @@ class QuerySpecificClusterModel(nn.Module):
         ks = [torch.unique(labels[i]).numel() for i in range(batch_size)]
         true_adjacency_mats = torch.stack([self.true_adj_mat(labels[i]) for i in range(batch_size)]).to(self.device)
 
-        query_embedding = self.query_model(query_feature)['sentence_embedding'] # its the scaling vector, so each element in vector should be [0, 1]
-        psg_embeddings = torch.stack([self.psg_model(passages)['sentence_embedding'] for passages in passage_features], dim=1)
+        query_embedding = self.query_model(query_feature)['sentence_embedding']
+        # its the scaling vector, so each element in vector should be [0, 1]
+        psg_embeddings = torch.stack([self.psg_model(passages)['sentence_embedding']
+                                      for passages in passage_features], dim=1)
         scaled_psg_embeddings = query_embedding * psg_embeddings
 
         embeddings_dist_mats = torch.stack([euclid_dist(scaled_psg_embeddings[i]) for i in range(batch_size)])
@@ -136,7 +142,8 @@ class QueryClusterEvaluator(SentenceEvaluator):
             model.cpu()
         for i in trange(len(self.queries), desc="Evaluating on val", smoothing=0.05):
             query = self.queries[i]
-            passages_to_cluster = [self.passages[i][p] for p in range(len(self.passages[i])) if len(self.passages[i][p])>0]
+            passages_to_cluster = [self.passages[i][p] for p in range(len(self.passages[i]))
+                                   if len(self.passages[i][p])>0]
             true_label = self.labels[i][:len(passages_to_cluster)]
             query_feature = model.query_model.tokenize(query)
             doc_features = model.psg_model.tokenize(passages_to_cluster)
@@ -146,7 +153,8 @@ class QueryClusterEvaluator(SentenceEvaluator):
             psg_embeddings = model.psg_model(doc_features)['sentence_embedding']
             scaled_psg_embeddings = query_embedding * psg_embeddings
             embeddings_dist_mat = self.euclid_dist(scaled_psg_embeddings)
-            cl = AgglomerativeClustering(n_clusters=torch.unique(true_label).numel(), affinity='precomputed', linkage='average')
+            cl = AgglomerativeClustering(n_clusters=torch.unique(true_label).numel(), affinity='precomputed',
+                                         linkage='average')
             cluster_label = cl.fit_predict(embeddings_dist_mat.detach().cpu().numpy())
             rand_scores.append(adjusted_rand_score(true_label.numpy(), cluster_label))
             nmi_scores.append(normalized_mutual_info_score(true_label.numpy(), cluster_label))
@@ -184,7 +192,8 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                                    pooling_mode_cls_token=False,
                                    pooling_mode_max_tokens=False)
 
-    query_dense_model = models.Dense(in_features=query_pooling_model.get_sentence_embedding_dimension(), out_features=out_features,
+    query_dense_model = models.Dense(in_features=query_pooling_model.get_sentence_embedding_dimension(),
+                                     out_features=out_features,
                                      activation_function=nn.Sigmoid())
     psg_word_embedding_model = models.Transformer(model_name)
 
@@ -198,7 +207,8 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                                      out_features=out_features,
                                      activation_function=nn.Tanh())
 
-    query_model = CustomSentenceTransformer(modules=[query_word_embedding_model, query_pooling_model, query_dense_model])
+    query_model = CustomSentenceTransformer(modules=[query_word_embedding_model, query_pooling_model,
+                                                     query_dense_model])
     psg_model = CustomSentenceTransformer(modules=[psg_word_embedding_model, psg_pooling_model, psg_dense_model])
     model = QuerySpecificClusterModel(query_transformer=query_model, psg_transformer=psg_model,
                                                          lambda_val=lambda_val, reg=reg, device=device)
@@ -259,7 +269,8 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
 
             if eval_steps > 0 and training_steps % eval_steps == 0:
                 tensorboard_writer.add_scalar('training_loss', running_loss_0 / eval_steps, global_step)
-                # logger.report_scalar('Loss', 'training_loss', iteration=global_step, value=running_loss_0/evaluation_steps)
+                # logger.report_scalar('Loss', 'training_loss', iteration=global_step, v
+                # alue=running_loss_0/evaluation_steps)
                 running_loss_0 = 0.0
                 # self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
                 if evaluator is not None:
@@ -306,18 +317,14 @@ def main():
     parser.add_argument('-ls', '--loss', default='bb')
     parser.add_argument('-lm', '--lambda_val', type=float, default=200.0)
     parser.add_argument('-b', '--beta', type=float, default=10.0)
-    parser.add_argument('-li', '--lambda_inc', type=float, default=10.0)
     parser.add_argument('-rg', '--reg_const', type=float, default=2.5)
     parser.add_argument('-md', '--max_doc', type=int, default=50)
-    parser.add_argument('-tf', '--triple_fraction', type=int, default=25)
     parser.add_argument('-vs', '--val_samples', type=int, default=25)
     parser.add_argument('-bt', '--batch_size', type=int, default=1)
     parser.add_argument('-ep', '--num_epoch', type=int, default=1)
     parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
     parser.add_argument('--gpu_eval', default=False, action='store_true')
-    parser.add_argument('--balanced', default=False, action='store_true')
-    parser.add_argument('-ex', '--exp_type', default='bbfix')
     parser.add_argument('-exl', '--exp_level', default='top')
     args = parser.parse_args()
     input_dir = args.input_dir
@@ -328,18 +335,14 @@ def main():
     loss_name = args.loss
     lambda_val = args.lambda_val
     beta = args.beta
-    lambda_increment = args.lambda_inc
     reg = args.reg_const
     max_num_doc = args.max_doc
-    triple_frac = args.triple_fraction
     val_samples = args.val_samples
     batch_size = args.batch_size
     epochs = args.num_epoch
     warmup_fraction = args.warmup
     eval_steps = args.eval_steps
     gpu_eval = args.gpu_eval
-    balanced = args.balanced
-    experiment_type = args.exp_type
     experiment_level = args.exp_level
     train_art_qrels = input_dir + '/' + train_in + '-article.qrels'
     train_top_qrels = input_dir + '/' + train_in + '-toplevel.qrels'
@@ -356,21 +359,25 @@ def main():
 
     '''
     train_top_cluster_data, train_hier_cluster_data, val_top_cluster_data, val_hier_cluster_data, \
-    test_top_cluster_data, test_hier_cluster_data = prepare_cluster_data(train_art_qrels, train_top_qrels, train_hier_qrels,
+    test_top_cluster_data, test_hier_cluster_data = prepare_cluster_data(train_art_qrels, train_top_qrels, 
+    train_hier_qrels,
                                                                          train_paratext, test_art_qrels, test_top_qrels,
                                                                          test_hier_qrels, test_paratext, max_num_doc,
                                                                          val_samples)
                                                                          '''
     print('Train data')
 
-    #train_top_cluster_data, train_hier_cluster_data = prepare_cluster_data2(train_art_qrels, train_top_qrels, train_hier_qrels, train_paratext, True, max_num_doc, 0)
-    train_top_cluster_data, train_hier_cluster_data = prepare_cluster_data_train_only(train_art_qrels, train_top_qrels, train_hier_qrels, train_paratext, max_num_doc)
+    #train_top_cluster_data, train_hier_cluster_data =
+    # prepare_cluster_data2(train_art_qrels, train_top_qrels, train_hier_qrels, train_paratext, True, max_num_doc, 0)
+    train_top_cluster_data, train_hier_cluster_data = prepare_cluster_data_train_only(train_art_qrels, train_top_qrels,
+                                                                                      train_hier_qrels, train_paratext,
+                                                                                      max_num_doc)
     print('Val data')
-    val_top_cluster_data, val_hier_cluster_data = prepare_cluster_data(val_art_qrels, val_top_qrels, val_hier_qrels,
+    val_top_cluster_data, val_hier_cluster_data = prepare_cluster_data2(val_art_qrels, val_top_qrels, val_hier_qrels,
                                                                             val_paratext, False, -1, val_samples)
     print('Test data')
-    test_top_cluster_data, test_hier_cluster_data = prepare_cluster_data(test_art_qrels, test_top_qrels, test_hier_qrels,
-                                                                        test_paratext, False, -1, 0)
+    test_top_cluster_data, test_hier_cluster_data = prepare_cluster_data2(test_art_qrels, test_top_qrels,
+                                                                          test_hier_qrels, test_paratext, False, -1, 0)
 
     if experiment_level == 'top':
         train_cluster_data = train_top_cluster_data
@@ -382,7 +389,7 @@ def main():
         test_cluster_data = test_hier_cluster_data
 
     train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs,
-          warmup_fraction, lambda_val, reg, beta, loss_name, gpu_eval)
+          warmup_fraction, lambda_val, reg, beta, loss_name, gpu_eval, model_name)
 
 if __name__ == '__main__':
     main()
