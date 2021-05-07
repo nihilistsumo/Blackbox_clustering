@@ -224,8 +224,6 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
     model.to(device)
     evaluator(model)
 
-    if output_path is not None:
-        os.makedirs(output_path, exist_ok=True)
     train_dataloader.collate_fn = model.query_batch_collate_fn
 
     # Train the model
