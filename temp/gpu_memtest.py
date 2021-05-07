@@ -29,12 +29,14 @@ def do_test(pt_file, model_name, n):
     if torch.cuda.is_available():
         psg_model.to(torch.device('cuda'))
     psg_features = []
+    print('Tokenizing')
     for p in text:
         psg_tkn = psg_model.tokenize(p)
         if torch.cuda.is_available():
             batch_to_device(psg_tkn, torch.device('cuda'))
         psg_features.append(psg_tkn)
     psg_embs = []
+    print('Embedding')
     for pfet in psg_features:
         psg_emb = psg_model(pfet)['sentence_embedding']
         psg_embs.append(psg_emb)
