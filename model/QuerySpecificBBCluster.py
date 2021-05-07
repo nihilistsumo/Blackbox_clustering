@@ -275,7 +275,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                 running_loss_0 = 0.0
                 # self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps, callback)
                 if evaluator is not None:
-                    score = evaluator(output_path=output_path, epoch=epoch, steps=training_steps)
+                    score = evaluator(model, output_path=output_path, epoch=epoch, steps=training_steps)
                     tensorboard_writer.add_scalar('val_ARI', score, global_step)
                     # logger.report_scalar('Training progress', 'val_ARI', iteration=global_step, value=score)
                     if score > best_score:
@@ -286,7 +286,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                 model.zero_grad()
                 model.train()
         if evaluator is not None:
-            score = evaluator(output_path=output_path, epoch=epoch, steps=training_steps)
+            score = evaluator(model, output_path=output_path, epoch=epoch, steps=training_steps)
             tensorboard_writer.add_scalar('val_ARI', score, global_step)
             # logger.report_scalar('Training progress', 'val_ARI', iteration=global_step, value=score)
             if score > best_score:
