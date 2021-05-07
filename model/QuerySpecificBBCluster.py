@@ -99,7 +99,7 @@ class QuerySpecificClusterModel(nn.Module):
         # its the scaling vector, so each element in vector should be [0, 1]
         psg_embeddings = torch.stack([self.psg_model(passages)['sentence_embedding']
                                       for passages in passage_features], dim=1)
-        scaled_psg_embeddings = query_embedding * psg_embeddings
+        scaled_psg_embeddings = torch.tile(query_embedding.unsqueeze(1), (1, n, 1)) * psg_embeddings
 
         embeddings_dist_mats = torch.stack([euclid_dist(scaled_psg_embeddings[i]) for i in range(batch_size)])
         mean_similar_dist = (embeddings_dist_mats * true_adjacency_mats).sum() / true_adjacency_mats.sum()
