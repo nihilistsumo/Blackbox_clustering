@@ -78,15 +78,16 @@ class QuerySpecificClusterModel(nn.Module):
 
         labels = torch.tensor(labels).to(self.device)
 
-        query_features, psg_features = [], []
         q_tokenized = self.query_model.tokenize(queries)
         batch_to_device(q_tokenized, self.device)
+
+        psg_features = []
         for idx in range(num_texts):
             p_tokenized = self.psg_model.tokenize(texts[idx])
             batch_to_device(p_tokenized, self.device)
             psg_features.append(p_tokenized)
 
-        return query_features, psg_features, labels
+        return q_tokenized, psg_features, labels
 
     def forward(self, query_feature: Dict[str, Tensor], passage_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         batch_size = labels.shape[0]
