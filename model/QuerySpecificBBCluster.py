@@ -294,7 +294,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                     torch.save(model.state_dict(), output_path)
                     #model.save(output_path)
         if test_evaluator is not None:
-            best_model = SentenceTransformer(output_path)
+            best_model = QuerySpecificClusterModel(output_path)
             if torch.cuda.is_available():
                 model.to(torch.device('cpu'))
                 best_model.to(device)
