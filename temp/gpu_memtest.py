@@ -39,7 +39,7 @@ def do_test(pt_file, model_name, n):
     print('Embedding')
     for pfet in psg_features:
         psg_emb = psg_model(pfet)['sentence_embedding']
-        batch_to_device(psg_emb, torch.device('cpu'))
+        psg_emb.to(torch.device('cpu'))
         psg_embs.append(psg_emb)
 
 do_test(sys.argv[1], sys.argv[2], int(sys.argv[3]))
