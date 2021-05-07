@@ -76,7 +76,7 @@ class QuerySpecificClusterModel(nn.Module):
                 texts[idx].append(text)
             labels.append(example.label)
 
-        labels = torch.tensor(labels).to(self._target_device)
+        labels = torch.tensor(labels).to(self.device)
 
         query_features, psg_features = [], []
         q_tokenized = self.query_model.tokenize(queries)
