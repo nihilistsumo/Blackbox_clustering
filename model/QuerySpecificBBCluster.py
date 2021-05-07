@@ -80,10 +80,10 @@ class QuerySpecificClusterModel(nn.Module):
 
         query_features, psg_features = [], []
         q_tokenized = self.query_model.tokenize(queries)
-        batch_to_device(q_tokenized, self._target_device)
+        batch_to_device(q_tokenized, self.device)
         for idx in range(num_texts):
             p_tokenized = self.psg_model.tokenize(texts[idx])
-            batch_to_device(p_tokenized, self._target_device)
+            batch_to_device(p_tokenized, self.device)
             psg_features.append(p_tokenized)
 
         return query_features, psg_features, labels
