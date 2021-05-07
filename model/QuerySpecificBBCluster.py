@@ -282,7 +282,8 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                         best_score = score
                         if save_best_model:
                             print('Saving model at: ' + output_path)
-                            model.save(output_path)
+                            torch.save(model.state_dict(), output_path)
+                            #model.save(output_path)
                 model.zero_grad()
                 model.train()
         if evaluator is not None:
@@ -292,7 +293,8 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
             if score > best_score:
                 best_score = score
                 if save_best_model:
-                    model.save(output_path)
+                    torch.save(model.state_dict(), output_path)
+                    #model.save(output_path)
         if test_evaluator is not None:
             best_model = SentenceTransformer(output_path)
             if torch.cuda.is_available():
@@ -306,7 +308,8 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
             tensorboard_writer.add_scalar('test_ARI', test_ari, global_step)
             # logger.report_scalar('Training progress', 'test_ARI', iteration=global_step, value=test_ari)
     if evaluator is None and output_path is not None:  # No evaluator, but output path: save final model version
-        model.save(output_path)
+        torch.save(model.state_dict(), output_path)
+        #model.save(output_path)
 
 def main():
     parser = argparse.ArgumentParser(description='Run treccar experiments')
