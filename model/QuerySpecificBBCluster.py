@@ -326,7 +326,7 @@ def main():
     parser.add_argument('-md', '--max_doc', type=int, default=50)
     parser.add_argument('-vs', '--val_samples', type=int, default=25)
     parser.add_argument('-bt', '--batch_size', type=int, default=1)
-    parser.add_argument('-ep', '--num_epoch', type=int, default=1)
+    parser.add_argument('-ep', '--num_epoch', type=int, default=3)
     parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
     parser.add_argument('--gpu_eval', default=False, action='store_true')
