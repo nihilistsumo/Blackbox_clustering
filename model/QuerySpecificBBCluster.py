@@ -22,15 +22,21 @@ import argparse
 
 class QuerySpecificClusterModel(nn.Module):
 
-    def __init__(self, query_transformer: CustomSentenceTransformer, psg_transformer: CustomSentenceTransformer,
-                 lambda_val: float, reg: float, device):
+    def __init__(self, path:str=None, query_transformer:CustomSentenceTransformer=None,
+                 psg_transformer:CustomSentenceTransformer=None, device:torch.device=None):
         super(QuerySpecificClusterModel, self).__init__()
-        self.query_model = query_transformer
-        self.psg_model = psg_transformer
+        if path is not None:
+            self.query_model = CustomSentenceTransformer(path+'/query_model')
+            self.psg_model = CustomSentenceTransformer(path+'/psg_model')
+        else:
+            self.query_model = query_transformer
+            self.psg_model = psg_transformer
         self.optim = OptimCluster
-        self.lambda_val = lambda_val
-        self.reg = reg
         self.device = device
+
+    def save(self, path):
+        self.query_model.save(path+'/query_model')
+        self.psg_model.save(path+'/psg_model')
 
     def _get_scheduler(self, optimizer, scheduler: str, warmup_steps: int, t_total: int):
         """
@@ -54,15 +60,6 @@ class QuerySpecificClusterModel(nn.Module):
                                                                                    num_training_steps=t_total)
         else:
             raise ValueError("Unknown scheduler {}".format(scheduler))
-
-    def true_adj_mat(self, label):
-        n = label.numel()
-        adj_mat = torch.zeros((n, n))
-        for i in range(n):
-            for j in range(n):
-                if i == j or label[i] == label[j]:
-                    adj_mat[i][j] = 1.0
-        return adj_mat
 
     def query_batch_collate_fn(self, batch):
         num_texts = len(batch[0].texts)
@@ -90,14 +87,45 @@ class QuerySpecificClusterModel(nn.Module):
         return q_tokenized, psg_features, labels
 
     def forward(self, query_feature: Dict[str, Tensor], passage_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+        n = labels.shape[1]
+
+        query_embedding = self.query_model(query_feature)['sentence_embedding']
+        # its the scaling vector, so each element in vector should be [0, 1]
+        psg_embeddings = torch.stack([self.psg_model(passages)['sentence_embedding']
+                                      for passages in passage_features], dim=1)
+        scaled_psg_embeddings = torch.tile(query_embedding.unsqueeze(1), (1, n, 1)) * psg_embeddings
+
+        return scaled_psg_embeddings
+
+class BBClusterLossModel(nn.Module):
+
+    def __init__(self, model: QuerySpecificClusterModel, device, lambda_val: float, reg_const: float):
+        super(BBClusterLossModel, self).__init__()
+        self.model = model
+        self.lambda_val = lambda_val
+        self.reg = reg_const
+        self.optim = OptimCluster()
+        self.device = device
+
+    def true_adj_mat(self, label):
+        n = label.numel()
+        adj_mat = torch.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                if i == j or label[i] == label[j]:
+                    adj_mat[i][j] = 1.0
+        return adj_mat
+
+    def forward(self, query_feature: Dict[str, Tensor], passage_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+
         batch_size = labels.shape[0]
         n = labels.shape[1]
         ks = [torch.unique(labels[i]).numel() for i in range(batch_size)]
         true_adjacency_mats = torch.stack([self.true_adj_mat(labels[i]) for i in range(batch_size)]).to(self.device)
 
-        query_embedding = self.query_model(query_feature)['sentence_embedding']
+        query_embedding = self.model.query_model(query_feature)['sentence_embedding']
         # its the scaling vector, so each element in vector should be [0, 1]
-        psg_embeddings = torch.stack([self.psg_model(passages)['sentence_embedding']
+        psg_embeddings = torch.stack([self.model.psg_model(passages)['sentence_embedding']
                                       for passages in passage_features], dim=1)
         scaled_psg_embeddings = torch.tile(query_embedding.unsqueeze(1), (1, n, 1)) * psg_embeddings
 
@@ -211,8 +239,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
     query_model = CustomSentenceTransformer(modules=[query_word_embedding_model, query_pooling_model,
                                                      query_dense_model])
     psg_model = CustomSentenceTransformer(modules=[psg_word_embedding_model, psg_pooling_model, psg_dense_model])
-    model = QuerySpecificClusterModel(query_transformer=query_model, psg_transformer=psg_model,
-                                                         lambda_val=lambda_val, reg=reg, device=device)
+    model = QuerySpecificClusterModel(query_transformer=query_model, psg_transformer=psg_model, device=device)
 
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     evaluator = QueryClusterEvaluator.from_input_examples(val_cluster_data, use_model_device)
@@ -244,6 +271,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                                         t_total=num_train_steps)
     config = {'epochs': num_epochs, 'steps_per_epoch': steps_per_epoch}
     global_step = 0
+    loss_model = BBClusterLossModel(model, device, lambda_val, reg)
     for epoch in trange(config.get('epochs'), desc="Epoch", disable=not show_progress_bar):
         training_steps = 0
         running_loss_0 = 0.0
@@ -256,7 +284,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                 data_iter = iter(train_dataloader)
                 data = next(data_iter)
             query_feature, psg_features, labels = data
-            loss_val = model(query_feature, psg_features, labels)
+            loss_val = loss_model(query_feature, psg_features, labels)
             running_loss_0 += loss_val.item()
             loss_val.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
@@ -280,8 +308,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                         best_score = score
                         if save_best_model:
                             print('Saving model at: ' + output_path)
-                            torch.save(model.state_dict(), output_path)
-                            #model.save(output_path)
+                            model.save(output_path)
                 model.zero_grad()
                 model.train()
         if evaluator is not None:
@@ -291,8 +318,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
             if score > best_score:
                 best_score = score
                 if save_best_model:
-                    torch.save(model.state_dict(), output_path)
-                    #model.save(output_path)
+                    model.save(output_path)
         if test_evaluator is not None:
             best_model = QuerySpecificClusterModel(output_path)
             if torch.cuda.is_available():
@@ -306,8 +332,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
             tensorboard_writer.add_scalar('test_ARI', test_ari, global_step)
             # logger.report_scalar('Training progress', 'test_ARI', iteration=global_step, value=test_ari)
     if evaluator is None and output_path is not None:  # No evaluator, but output path: save final model version
-        torch.save(model.state_dict(), output_path)
-        #model.save(output_path)
+        model.save(output_path)
 
 def main():
     parser = argparse.ArgumentParser(description='Run treccar experiments')
