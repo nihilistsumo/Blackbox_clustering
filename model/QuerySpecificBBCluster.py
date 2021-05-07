@@ -324,11 +324,11 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
             if torch.cuda.is_available():
                 model.to(torch.device('cpu'))
                 best_model.to(device)
-                test_ari = best_model.evaluate(test_evaluator)
+                test_ari = test_evaluator(best_model)
                 best_model.to(torch.device('cpu'))
                 model.to(device)
             else:
-                test_ari = best_model.evaluate(test_evaluator)
+                test_ari = test_evaluator(best_model)
             tensorboard_writer.add_scalar('test_ARI', test_ari, global_step)
             # logger.report_scalar('Training progress', 'test_ARI', iteration=global_step, value=test_ari)
     if evaluator is None and output_path is not None:  # No evaluator, but output path: save final model version
