@@ -36,6 +36,8 @@ def trec_stats(art_qrels, top_qrels, hier_qrels, paratext_file, i):
                      min_hier_k, max_hier_k, l10, l20, l30, l40, l50]
         stats.append(curr_stat)
         c += 1
+        if c % 100 == 0:
+            print(str(i-c)+' pages to go')
         if i > 0 and c >= i:
             break
     print('Article\tN\ttop_k\tmean_k\tstd_k\tmin_k\tmax_k\thier_k\tmean_k\tstd_k\tmin_k\tmax_k\tl10\tl20\tl30\tl40\tl50')
