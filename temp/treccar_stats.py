@@ -7,6 +7,7 @@ import json
 def trec_stats(art_qrels, top_qrels, hier_qrels, paratext_file, i):
     page_paras, rev_para_top, rev_para_hier = get_trec_dat(art_qrels, top_qrels, hier_qrels)
     paratext_dict = get_paratext_dict(paratext_file)
+    print('Data loaded')
     arts = []
     stats = []
     c = 0
@@ -46,6 +47,6 @@ def trec_stats(art_qrels, top_qrels, hier_qrels, paratext_file, i):
     return arts, stats
 
 articles, stats = trec_stats(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[6]))
-with open(sys.argv[5]+'/articles.json') as f:
+with open(sys.argv[5]+'/articles.json', 'w') as f:
     json.dump(articles, f)
 np.save(sys.argv[5]+'/stats', np.array(stats))
