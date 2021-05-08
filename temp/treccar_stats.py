@@ -42,7 +42,7 @@ def trec_stats(art_qrels, top_qrels, hier_qrels, paratext_file, i):
         if i > 0 and c >= i:
             break
     print('Article\tN\ttop_k\tmean_k\tstd_k\tmin_k\tmax_k\thier_k\tmean_k\tstd_k\tmin_k\tmax_k\tl10\tl20\tl30\tl40\tl50')
-    for i, d in enumerate(stats):
+    for i, d in enumerate(stats[:100]):
         print(arts[i]+'\t'.join([str(dd) for dd in d]))
     return arts, stats
 
