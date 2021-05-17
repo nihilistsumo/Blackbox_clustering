@@ -1,5 +1,6 @@
 from model.BBCluster import CustomSentenceTransformer, OptimCluster, euclid_dist
-from experiments.treccar_run import prepare_cluster_data_train_only, prepare_cluster_data2
+from experiments.treccar_run import prepare_cluster_data_train_only, prepare_cluster_data2, get_trec_dat, \
+    get_paratext_dict
 from util.Data import InputTRECCARExample
 import numpy as np
 import torch
@@ -19,6 +20,64 @@ from tqdm.autonotebook import trange
 from clearml import Task
 import os
 import argparse
+
+def prepare_cluster_data_train(pages_file, art_qrels, top_qrels, paratext):
+    page_paras, rev_para_top, _ = get_trec_dat(art_qrels, top_qrels, None)
+    ptext_dict = get_paratext_dict(paratext)
+    top_cluster_data = []
+    pages = []
+    with open(pages_file, 'r') as f:
+        for l in f:
+            pages.append(l.rstrip('\n'))
+    for i in trange(len(pages)):
+        page = pages[i]
+        paras = page_paras[page]
+        paratexts = [ptext_dict[p] for p in paras]
+        top_sections = list(set([rev_para_top[p] for p in paras]))
+        if len(top_sections) < 2:
+            continue
+        top_labels = [top_sections.index(rev_para_top[p]) for p in paras]
+        query_text = ' '.join(page.split('enwiki:')[1].split('%20'))
+        top_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=paras, texts=paratexts,
+                                                    label=np.array(top_labels)))
+    print('Total data instances: %5d' % len(top_cluster_data))
+    return top_cluster_data
+
+def prepare_cluster_data_for_eval(art_qrels, top_qrels, paratext, do_filter, val_samples):
+    page_paras, rev_para_top, _ = get_trec_dat(art_qrels, top_qrels, None)
+    len_paras = np.array([len(page_paras[page]) for page in page_paras.keys()])
+    print('mean paras: %.2f, std: %.2f, max paras: %.2f' % (np.mean(len_paras), np.std(len_paras), np.max(len_paras)))
+    ptext_dict = get_paratext_dict(paratext)
+    top_cluster_data = []
+    pages = list(page_paras.keys())
+    skipped_pages = 0
+    max_num_doc = max([len(page_paras[p]) for p in page_paras.keys()])
+    for i in trange(len(pages)):
+        page = pages[i]
+        paras = page_paras[page]
+        paratexts = [ptext_dict[p] for p in paras]
+        top_sections = list(set([rev_para_top[p] for p in paras]))
+        top_labels = [top_sections.index(rev_para_top[p]) for p in paras]
+        query_text = ' '.join(page.split('enwiki:')[1].split('%20'))
+        n = len(paras)
+        if do_filter:
+            if n < 20 or n > 200:
+                skipped_pages += 1
+                continue
+        paras = paras[:max_num_doc] if n >= max_num_doc else paras + ['dummy'] * (max_num_doc - n)
+        paratexts = paratexts[:max_num_doc] if n >= max_num_doc else paratexts + [''] * (max_num_doc - n)
+        top_labels = top_labels[:max_num_doc] if n >= max_num_doc else top_labels + [-1] * (max_num_doc - n)
+        if do_filter:
+            if len(set(top_labels)) < 2 or n / len(set(top_labels)) < 2.5:
+                ## the page should have at least 2 top level sections and n/k should be at least 2.5
+                skipped_pages += 1
+                continue
+        top_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=paras, texts=paratexts,
+                                                          label=np.array(top_labels)))
+    if val_samples > 0:
+        top_cluster_data = top_cluster_data[:val_samples]
+    print('Total data instances: %5d' % len(top_cluster_data))
+    return top_cluster_data
 
 class QuerySpecificClusterModel(nn.Module):
 
@@ -196,7 +255,7 @@ class QueryClusterEvaluator(SentenceEvaluator):
             model.to(model_device)
         return mean_rand
 
-def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, train_batch_size, eval_steps,
+def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, eval_steps,
           num_epochs, warmup_frac, lambda_val, reg, beta, loss_name, use_model_device,
           model_name='distilbert-base-uncased', out_features=256, steps_per_epoch=None, weight_decay=0.01,
           optimizer_class=transformers.AdamW, scheduler='WarmupLinear', optimizer_params={'lr':2e-5},
@@ -241,7 +300,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
     psg_model = CustomSentenceTransformer(modules=[psg_word_embedding_model, psg_pooling_model, psg_dense_model])
     model = QuerySpecificClusterModel(query_transformer=query_model, psg_transformer=psg_model, device=device)
 
-    train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
+    train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=1)
     evaluator = QueryClusterEvaluator.from_input_examples(val_cluster_data, use_model_device)
     test_evaluator = QueryClusterEvaluator.from_input_examples(test_cluster_data, use_model_device)
 
@@ -339,6 +398,7 @@ def main():
     parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
     parser.add_argument('-tin', '--train_input', default='train/base.train.cbor')
     parser.add_argument('-tp', '--train_paratext', default='train/train_paratext/train_paratext.tsv')
+    parser.add_argument('-tpg', '--train_pages', default='/home/sk1105/sumanta/trec_dataset/train/stats/sqst_pages.tsv')
     parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models/temp_model')
     parser.add_argument('-mn', '--model_name', default='distilbert-base-uncased')
     parser.add_argument('-ls', '--loss', default='bb')
@@ -347,41 +407,40 @@ def main():
     parser.add_argument('-rg', '--reg_const', type=float, default=2.5)
     parser.add_argument('-md', '--max_doc', type=int, default=50)
     parser.add_argument('-vs', '--val_samples', type=int, default=25)
-    parser.add_argument('-bt', '--batch_size', type=int, default=1)
+    # Lets make batch size fixed as 1 and take articles of different sizes as input
+    # parser.add_argument('-bt', '--batch_size', type=int, default=1)
     parser.add_argument('-ep', '--num_epoch', type=int, default=3)
     parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
     parser.add_argument('--gpu_eval', default=False, action='store_true')
-    parser.add_argument('-exl', '--exp_level', default='top')
+    # Lets only experiment with toplevel
+    # parser.add_argument('-exl', '--exp_level', default='top')
     args = parser.parse_args()
     input_dir = args.input_dir
     train_in = args.train_input
     train_pt = args.train_paratext
+    train_pages_file = args.train_pages
     output_path = args.output_model_path
     model_name = args.model_name
     loss_name = args.loss
     lambda_val = args.lambda_val
     beta = args.beta
     reg = args.reg_const
-    max_num_doc = args.max_doc
+    # max_num_doc = args.max_doc
     val_samples = args.val_samples
-    batch_size = args.batch_size
     epochs = args.num_epoch
     warmup_fraction = args.warmup
     eval_steps = args.eval_steps
     gpu_eval = args.gpu_eval
-    experiment_level = args.exp_level
+    # experiment_level = args.exp_level
     train_art_qrels = input_dir + '/' + train_in + '-article.qrels'
     train_top_qrels = input_dir + '/' + train_in + '-toplevel.qrels'
-    train_hier_qrels = input_dir + '/' + train_in + '-hierarchical.qrels'
     train_paratext = input_dir + '/' + train_pt
     val_art_qrels = input_dir + '/benchmarkY1/benchmarkY1-train-nodup/train.pages.cbor-article.qrels'
     val_top_qrels = input_dir + '/benchmarkY1/benchmarkY1-train-nodup/train.pages.cbor-toplevel.qrels'
-    val_hier_qrels = input_dir + '/benchmarkY1/benchmarkY1-train-nodup/train.pages.cbor-hierarchical.qrels'
     val_paratext = input_dir + '/benchmarkY1/benchmarkY1-train-nodup/by1train_paratext/by1train_paratext.tsv'
     test_art_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-article.qrels'
     test_top_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-toplevel.qrels'
-    test_hier_qrels = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/test.pages.cbor-hierarchical.qrels'
     test_paratext = input_dir + '/benchmarkY1/benchmarkY1-test-nodup/by1test_paratext/by1test_paratext.tsv'
 
     '''
@@ -396,26 +455,17 @@ def main():
 
     #train_top_cluster_data, train_hier_cluster_data =
     # prepare_cluster_data2(train_art_qrels, train_top_qrels, train_hier_qrels, train_paratext, True, max_num_doc, 0)
-    train_top_cluster_data, train_hier_cluster_data = prepare_cluster_data_train_only(train_art_qrels, train_top_qrels,
-                                                                                      train_hier_qrels, train_paratext,
-                                                                                      max_num_doc)
+    train_cluster_data = prepare_cluster_data_train(train_pages_file, train_art_qrels,
+                                                                                 train_top_qrels, train_paratext)
     print('Val data')
-    val_top_cluster_data, val_hier_cluster_data = prepare_cluster_data2(val_art_qrels, val_top_qrels, val_hier_qrels,
-                                                                            val_paratext, False, -1, val_samples)
+    val_cluster_data = prepare_cluster_data_for_eval(val_art_qrels, val_top_qrels,
+                                                                            val_paratext, False, val_samples)
     print('Test data')
-    test_top_cluster_data, test_hier_cluster_data = prepare_cluster_data2(test_art_qrels, test_top_qrels,
-                                                                          test_hier_qrels, test_paratext, False, -1, 0)
+    test_cluster_data = prepare_cluster_data_for_eval(test_art_qrels, test_top_qrels,
+                                                                                  test_paratext, False, 0)
 
-    if experiment_level == 'top':
-        train_cluster_data = train_top_cluster_data
-        val_cluster_data = val_top_cluster_data
-        test_cluster_data = test_top_cluster_data
-    else:
-        train_cluster_data = train_hier_cluster_data
-        val_cluster_data = val_hier_cluster_data
-        test_cluster_data = test_hier_cluster_data
 
-    train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, batch_size, eval_steps, epochs,
+    train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, eval_steps, epochs,
           warmup_fraction, lambda_val, reg, beta, loss_name, gpu_eval, model_name)
 
 if __name__ == '__main__':

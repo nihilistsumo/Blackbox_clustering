@@ -52,7 +52,6 @@ def get_pairs(cluster_data, balanced):
 
 def get_trec_dat(art_qrels, top_qrels, hier_qrels):
     page_paras = {}
-    art_qrels_lines = []
     with open(art_qrels, 'r') as f:
         art_qrels_lines = f.readlines()
     random.shuffle(art_qrels_lines)
@@ -72,11 +71,12 @@ def get_trec_dat(art_qrels, top_qrels, hier_qrels):
             rev_para_top[para] = topic
 
     rev_para_hier = {}
-    with open(hier_qrels, 'r') as f:
-        for l in f:
-            topic = l.split(' ')[0]
-            para = l.split(' ')[2]
-            rev_para_hier[para] = topic
+    if hier_qrels is not None:
+        with open(hier_qrels, 'r') as f:
+            for l in f:
+                topic = l.split(' ')[0]
+                para = l.split(' ')[2]
+                rev_para_hier[para] = topic
 
     return page_paras, rev_para_top, rev_para_hier
 
