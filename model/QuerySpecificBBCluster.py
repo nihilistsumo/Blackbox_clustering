@@ -18,8 +18,13 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score
 from tqdm.autonotebook import trange
 from clearml import Task
-import os
+import pickle
 import argparse
+
+import random
+random.seed(42)
+torch.manual_seed(42)
+np.random.seed(42)
 
 def prepare_cluster_data_train(pages_file, art_qrels, top_qrels, paratext):
     page_paras, rev_para_top, _ = get_trec_dat(art_qrels, top_qrels, None)
@@ -393,6 +398,49 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
     if evaluator is None and output_path is not None:  # No evaluator, but output path: save final model version
         model.save(output_path)
 
+def save_sqst_dataset(train_pages_file, art_qrels, top_qrels, paratext, val_samples, outdir):
+    page_paras, rev_para_top, _ = get_trec_dat(art_qrels, top_qrels, None)
+    ptext_dict = get_paratext_dict(paratext)
+    train_cluster_data = []
+    test_cluster_data = []
+    pages = []
+    with open(train_pages_file, 'r') as f:
+        for l in f:
+            pages.append(l.rstrip('\n'))
+    for i in trange(len(pages)):
+        page = pages[i]
+        paras = page_paras[page]
+        page_sec_para_dict = {}
+        for p in paras:
+            sec = rev_para_top[p]
+            if sec not in page_sec_para_dict.keys():
+                page_sec_para_dict[sec] = [p]
+            else:
+                page_sec_para_dict[sec].append(p)
+        top_sections = list(set([rev_para_top[p] for p in paras]))
+        train_paras = []
+        test_paras = []
+        for s in page_sec_para_dict.keys():
+            test_paras += page_sec_para_dict[s][:len(page_sec_para_dict[s])//2]
+            train_paras += page_sec_para_dict[s][len(page_sec_para_dict[s])//2:]
+        test_labels = [top_sections.index(rev_para_top[p]) for p in test_paras]
+        train_labels = [top_sections.index(rev_para_top[p]) for p in train_paras]
+        test_paratexts = [ptext_dict[p] for p in test_paras]
+        train_paratexts = [ptext_dict[p] for p in train_paras]
+        query_text = ' '.join(page.split('enwiki:')[1].split('%20'))
+        test_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=test_paras,
+                                                     texts=test_paratexts, label=np.array(test_labels)))
+        train_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=train_paras,
+                                                     texts=train_paratexts, label=np.array(train_labels)))
+    random.shuffle(test_cluster_data)
+    val_cluster_data = test_cluster_data[:val_samples]
+    test_cluster_data = test_cluster_data[val_samples:]
+    pickle.dump(train_cluster_data, outdir + '/sqst_treccar_train.pkl')
+    pickle.dump(val_cluster_data, outdir + '/sqst_treccar_val.pkl')
+    pickle.dump(test_cluster_data, outdir + '/sqst_treccar_test.pkl')
+    print('No. of data instances - Train: %5d, Val: %5d, Test: %5d' % (len(train_cluster_data), len(val_cluster_data),
+                                                                       len(test_cluster_data)))
+
 def main():
     parser = argparse.ArgumentParser(description='Run treccar experiments')
     parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
@@ -412,6 +460,7 @@ def main():
     parser.add_argument('-ep', '--num_epoch', type=int, default=3)
     parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
+    parser.add_argument('-ex', '--exp_type', default='sqst')
     parser.add_argument('--gpu_eval', default=False, action='store_true')
     # Lets only experiment with toplevel
     # parser.add_argument('-exl', '--exp_level', default='top')
@@ -455,18 +504,15 @@ def main():
 
     #train_top_cluster_data, train_hier_cluster_data =
     # prepare_cluster_data2(train_art_qrels, train_top_qrels, train_hier_qrels, train_paratext, True, max_num_doc, 0)
-    train_cluster_data = prepare_cluster_data_train(train_pages_file, train_art_qrels,
-                                                                                 train_top_qrels, train_paratext)
+    train_cluster_data = prepare_cluster_data_train(train_pages_file, train_art_qrels, train_top_qrels, train_paratext)
     print('Val data')
-    val_cluster_data = prepare_cluster_data_for_eval(val_art_qrels, val_top_qrels,
-                                                                            val_paratext, False, val_samples)
+    val_cluster_data = prepare_cluster_data_for_eval(val_art_qrels, val_top_qrels, val_paratext, False, val_samples)
     print('Test data')
-    test_cluster_data = prepare_cluster_data_for_eval(test_art_qrels, test_top_qrels,
-                                                                                  test_paratext, False, 0)
+    test_cluster_data = prepare_cluster_data_for_eval(test_art_qrels, test_top_qrels, test_paratext, False, 0)
 
 
-    train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, eval_steps, epochs,
-          warmup_fraction, lambda_val, reg, beta, loss_name, gpu_eval, model_name)
+    train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, eval_steps, epochs, warmup_fraction,
+          lambda_val, reg, beta, loss_name, gpu_eval, model_name)
 
 if __name__ == '__main__':
     main()
