@@ -545,7 +545,7 @@ def main():
     print('Data loaded, starting to train')
 
     train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, eval_steps, epochs, warmup_fraction,
-          lambda_val, reg, beta, loss_name, gpu_eval, model_name)
+          lambda_val, reg, beta, loss_name, gpu_eval, max_train_size=50, model_name=model_name)
 
 if __name__ == '__main__':
     main()
