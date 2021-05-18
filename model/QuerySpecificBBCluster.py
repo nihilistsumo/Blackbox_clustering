@@ -510,6 +510,7 @@ def main():
     parser.add_argument('-ep', '--num_epoch', type=int, default=3)
     parser.add_argument('-ws', '--warmup', type=float, default=0.1)
     parser.add_argument('-es', '--eval_steps', type=int, default=100)
+    parser.add_argument('-md', '--max_sample_size', type=int, default=-1)
     parser.add_argument('-ext', '--exp_type', default='sqst')
     parser.add_argument('--gpu_eval', default=False, action='store_true')
     args = parser.parse_args()
@@ -523,6 +524,7 @@ def main():
     epochs = args.num_epoch
     warmup_fraction = args.warmup
     eval_steps = args.eval_steps
+    max_sample_size = args.max_sample_size
     exp_type = args.exp_type
     gpu_eval = args.gpu_eval
 
@@ -544,7 +546,7 @@ def main():
     print('Data loaded, starting to train')
 
     train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, eval_steps, epochs, warmup_fraction,
-          lambda_val, reg, beta, loss_name, gpu_eval, max_train_size=60, model_name=model_name)
+          lambda_val, reg, beta, loss_name, gpu_eval, max_train_size=max_sample_size, model_name=model_name)
 
 if __name__ == '__main__':
     main()
