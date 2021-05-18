@@ -436,11 +436,11 @@ def save_sqst_dataset(train_pages_file, art_qrels, top_qrels, paratext, val_samp
     val_cluster_data = test_cluster_data[:val_samples]
     test_cluster_data = test_cluster_data[val_samples:]
     with open(outdir + '/sqst_treccar_train.pkl', 'w') as f:
-        pickle.dump(train_cluster_data, f)
+        pickle.dumps(train_cluster_data, f)
     with open(outdir + '/sqst_treccar_val.pkl', 'w') as f:
-        pickle.dump(val_cluster_data, f)
+        pickle.dumps(val_cluster_data, f)
     with open(outdir + '/sqst_treccar_test.pkl', 'w') as f:
-        pickle.dump(test_cluster_data, f)
+        pickle.dumps(test_cluster_data, f)
     print('No. of data instances - Train: %5d, Val: %5d, Test: %5d' % (len(train_cluster_data), len(val_cluster_data),
                                                                        len(test_cluster_data)))
 
