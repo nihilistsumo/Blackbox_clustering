@@ -417,14 +417,14 @@ def save_sqst_dataset(train_pages_file, art_qrels, top_qrels, paratext, val_samp
                 page_sec_para_dict[sec] = [p]
             else:
                 page_sec_para_dict[sec].append(p)
-        top_sections = list(set([rev_para_top[p] for p in paras]))
+        sections = list(set([rev_para_top[p] for p in paras]))
         train_paras = []
         test_paras = []
         for s in page_sec_para_dict.keys():
             test_paras += page_sec_para_dict[s][:len(page_sec_para_dict[s])//2]
             train_paras += page_sec_para_dict[s][len(page_sec_para_dict[s])//2:]
-        test_labels = [top_sections.index(rev_para_top[p]) for p in test_paras]
-        train_labels = [top_sections.index(rev_para_top[p]) for p in train_paras]
+        test_labels = [sections.index(rev_para_top[p]) for p in test_paras]
+        train_labels = [sections.index(rev_para_top[p]) for p in train_paras]
         test_paratexts = [ptext_dict[p] for p in test_paras]
         train_paratexts = [ptext_dict[p] for p in train_paras]
         query_text = ' '.join(page.split('enwiki:')[1].split('%20'))
@@ -443,6 +443,57 @@ def save_sqst_dataset(train_pages_file, art_qrels, top_qrels, paratext, val_samp
         pickle.dump(test_cluster_data, f)
     print('No. of data instances - Train: %5d, Val: %5d, Test: %5d' % (len(train_cluster_data), len(val_cluster_data),
                                                                        len(test_cluster_data)))
+
+def save_squt_dataset(train_pages_file, art_qrels, top_qrels, paratext, val_samples, outdir):
+    page_paras, rev_para_top, _ = get_trec_dat(art_qrels, top_qrels, None)
+    ptext_dict = get_paratext_dict(paratext)
+    train_cluster_data = []
+    test_cluster_data = []
+    pages = []
+    with open(train_pages_file, 'r') as f:
+        for l in f:
+            pages.append(l.rstrip('\n'))
+    for i in trange(len(pages)):
+        page = pages[i]
+        paras = page_paras[page]
+        page_sec_para_dict = {}
+        for p in paras:
+            sec = rev_para_top[p]
+            if sec not in page_sec_para_dict.keys():
+                page_sec_para_dict[sec] = [p]
+            else:
+                page_sec_para_dict[sec].append(p)
+        sections = list(set([rev_para_top[p] for p in paras]))
+        random.shuffle(sections)
+        test_sections, train_sections = sections[:len(sections)//2], sections[len(sections)//2:]
+        train_paras = []
+        test_paras = []
+        for s in test_sections:
+            test_paras += page_sec_para_dict[s]
+        for s in train_sections:
+            train_paras += page_sec_para_dict[s]
+        test_labels = [sections.index(rev_para_top[p]) for p in test_paras]
+        train_labels = [sections.index(rev_para_top[p]) for p in train_paras]
+        test_paratexts = [ptext_dict[p] for p in test_paras]
+        train_paratexts = [ptext_dict[p] for p in train_paras]
+        query_text = ' '.join(page.split('enwiki:')[1].split('%20'))
+        test_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=test_paras,
+                                                     texts=test_paratexts, label=np.array(test_labels)))
+        train_cluster_data.append(InputTRECCARExample(qid=page, q_context=query_text, pids=train_paras,
+                                                      texts=train_paratexts, label=np.array(train_labels)))
+    random.shuffle(test_cluster_data)
+    val_cluster_data = test_cluster_data[:val_samples]
+    test_cluster_data = test_cluster_data[val_samples:]
+    with open(outdir + '/squt_treccar_train.pkl', 'wb') as f:
+        pickle.dump(train_cluster_data, f)
+    with open(outdir + '/squt_treccar_val.pkl', 'wb') as f:
+        pickle.dump(val_cluster_data, f)
+    with open(outdir + '/squt_treccar_test.pkl', 'wb') as f:
+        pickle.dump(test_cluster_data, f)
+    print(
+        'No. of data instances - Train: %5d, Val: %5d, Test: %5d' % (len(train_cluster_data), len(val_cluster_data),
+                                                                     len(test_cluster_data)))
+
 
 def main():
     parser = argparse.ArgumentParser(description='Run treccar experiments')
