@@ -261,7 +261,7 @@ class QueryClusterEvaluator(SentenceEvaluator):
         return mean_rand
 
 def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, eval_steps,
-          num_epochs, warmup_frac, lambda_val, reg, beta, loss_name, use_model_device,
+          num_epochs, warmup_frac, lambda_val, reg, beta, loss_name, use_model_device, max_train_size=-1,
           model_name='distilbert-base-uncased', out_features=256, steps_per_epoch=None, weight_decay=0.01,
           optimizer_class=transformers.AdamW, scheduler='WarmupLinear', optimizer_params={'lr':2e-5},
           show_progress_bar=True, max_grad_norm=1, save_best_model=True):
@@ -348,6 +348,9 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                 data_iter = iter(train_dataloader)
                 data = next(data_iter)
             query_feature, psg_features, labels = data
+            if max_train_size > 0 and labels.shape[1] > max_train_size:
+                print('skipping ' + str(query_feature))
+                continue
             loss_val = loss_model(query_feature, psg_features, labels)
             print(labels.shape)
             running_loss_0 += loss_val.item()
