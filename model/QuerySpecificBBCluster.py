@@ -349,10 +349,9 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                 data = next(data_iter)
             query_feature, psg_features, labels = data
             if max_train_size > 0 and labels.shape[1] > max_train_size:
-                print('skipping ' + str(query_feature))
+                print('skipping instance with '+str(labels.shape[1])+' passages')
                 continue
             loss_val = loss_model(query_feature, psg_features, labels)
-            print(labels.shape)
             running_loss_0 += loss_val.item()
             loss_val.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
