@@ -95,6 +95,7 @@ class QuerySpecificClusterModel(nn.Module):
         else:
             self.query_model = query_transformer
             self.psg_model = psg_transformer
+        self.psg_model.training = False
         self.optim = OptimCluster
         self.device = device
 
