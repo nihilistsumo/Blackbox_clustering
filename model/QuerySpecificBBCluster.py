@@ -304,7 +304,7 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                                                      query_dense_model])
     psg_model = SentenceTransformer(modules=[psg_word_embedding_model, psg_pooling_model, psg_dense_model])
     psg_model.training = False
-    for m in psg_model.children():
+    for m in psg_model.modules():
         m.eval()
 
     model = QuerySpecificClusterModel(query_transformer=query_model, psg_transformer=psg_model, device=device)
