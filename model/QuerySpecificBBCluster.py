@@ -261,7 +261,7 @@ class QueryClusterEvaluator(SentenceEvaluator):
         return mean_rand
 
 def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, eval_steps,
-          num_epochs, warmup_frac, lambda_val, reg, beta, loss_name, use_model_device, max_train_size=-1,
+          num_epochs, warmup_frac, lambda_val, reg, use_model_device, max_train_size=-1, train_psg_model=False,
           model_name='distilbert-base-uncased', out_features=256, steps_per_epoch=None, weight_decay=0.01,
           optimizer_class=transformers.AdamW, scheduler='WarmupLinear', optimizer_params={'lr':2e-5},
           show_progress_bar=True, max_grad_norm=1, save_best_model=True):
@@ -303,9 +303,6 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
     query_model = CustomSentenceTransformer(modules=[query_word_embedding_model, query_pooling_model,
                                                      query_dense_model])
     psg_model = SentenceTransformer(modules=[psg_word_embedding_model, psg_pooling_model, psg_dense_model])
-    psg_model.training = False
-    for m in psg_model.modules():
-        m.eval()
 
     model = QuerySpecificClusterModel(query_transformer=query_model, psg_transformer=psg_model, device=device)
 
@@ -345,8 +342,9 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
         running_loss_0 = 0.0
         model.zero_grad()
         model.train()
-        for m in model.psg_model.modules():
-            m.training = False
+        if not train_psg_model:
+            for m in model.psg_model.modules():
+                m.training = False
         for _ in trange(config.get('steps_per_epoch'), desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
             try:
                 data = next(data_iter)
@@ -384,8 +382,9 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                             model.save(output_path)
                 model.zero_grad()
                 model.train()
-                for m in model.psg_model.modules():
-                    m.training = False
+                if not train_psg_model:
+                    for m in model.psg_model.modules():
+                        m.training = False
         if evaluator is not None:
             score = evaluator(model, output_path=output_path, epoch=epoch, steps=training_steps)
             tensorboard_writer.add_scalar('val_ARI', score, global_step)
@@ -521,6 +520,7 @@ def main():
     parser.add_argument('-md', '--max_sample_size', type=int, default=-1)
     parser.add_argument('-ext', '--exp_type', default='sqst')
     parser.add_argument('--gpu_eval', default=False, action='store_true')
+    parser.add_argument('--train_psg_model', default=False, action='store_true')
     args = parser.parse_args()
     input_dir = args.input_dir
     output_path = args.output_model_path
@@ -535,6 +535,7 @@ def main():
     max_sample_size = args.max_sample_size
     exp_type = args.exp_type
     gpu_eval = args.gpu_eval
+    train_psg_model = args.train_psg_model
 
     if exp_type == 'sqst':
         with open(input_dir + '/sqst/sqst_treccar_train.pkl', 'rb') as f:
@@ -554,7 +555,8 @@ def main():
     print('Data loaded, starting to train')
 
     train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, eval_steps, epochs, warmup_fraction,
-          lambda_val, reg, beta, loss_name, gpu_eval, max_train_size=max_sample_size, model_name=model_name)
+          lambda_val, reg, gpu_eval, max_train_size=max_sample_size, train_psg_model=train_psg_model,
+          model_name=model_name)
 
 if __name__ == '__main__':
     main()
