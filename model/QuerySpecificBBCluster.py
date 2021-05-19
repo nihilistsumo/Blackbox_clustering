@@ -95,7 +95,6 @@ class QuerySpecificClusterModel(nn.Module):
         else:
             self.query_model = query_transformer
             self.psg_model = psg_transformer
-        self.psg_model.training = False
         self.optim = OptimCluster
         self.device = device
 
@@ -156,6 +155,7 @@ class QuerySpecificClusterModel(nn.Module):
 
         query_embedding = self.query_model(query_feature)['sentence_embedding']
         # its the scaling vector, so each element in vector should be [0, 1]
+        self.psg_model.training = False
         psg_embeddings = torch.stack([self.psg_model(passages)['sentence_embedding']
                                       for passages in passage_features], dim=1)
         scaled_psg_embeddings = torch.tile(query_embedding.unsqueeze(1), (1, n, 1)) * psg_embeddings
