@@ -289,7 +289,6 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                                      out_features=out_features,
                                      activation_function=nn.Sigmoid())
     psg_word_embedding_model = models.Transformer(model_name)
-    psg_word_embedding_model.training = False
 
     # Apply mean pooling to get one fixed sized sentence vector
     psg_pooling_model = models.Pooling(psg_word_embedding_model.get_word_embedding_dimension(),
@@ -300,8 +299,6 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
     psg_dense_model = models.Dense(in_features=psg_pooling_model.get_sentence_embedding_dimension(),
                                      out_features=out_features,
                                      activation_function=nn.Tanh())
-    psg_dense_model.training = False
-    print(psg_dense_model.named_parameters())
 
     query_model = CustomSentenceTransformer(modules=[query_word_embedding_model, query_pooling_model,
                                                      query_dense_model])
@@ -348,6 +345,8 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
         running_loss_0 = 0.0
         model.zero_grad()
         model.train()
+        for m in model.psg_model.modules():
+            m.training = False
         for _ in trange(config.get('steps_per_epoch'), desc="Iteration", smoothing=0.05, disable=not show_progress_bar):
             try:
                 data = next(data_iter)
@@ -385,6 +384,8 @@ def train(train_cluster_data, val_cluster_data, test_cluster_data, output_path, 
                             model.save(output_path)
                 model.zero_grad()
                 model.train()
+                for m in model.psg_model.modules():
+                    m.training = False
         if evaluator is not None:
             score = evaluator(model, output_path=output_path, epoch=epoch, steps=training_steps)
             tensorboard_writer.add_scalar('val_ARI', score, global_step)
