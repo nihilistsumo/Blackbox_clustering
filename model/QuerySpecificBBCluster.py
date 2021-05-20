@@ -558,6 +558,7 @@ def save_sbert_embeds(sbert_model_name, pages_path, art_qrels, paratext_file, ou
             page = l.rstrip('\n')
             paras += page_paras[page]
             paratexts += [paratext_dict[p] for p in page_paras[page]]
+    print(str(len(paratexts))+' paras to be encoded')
     para_embeddings = sbert.encode(paratexts)
     para_data = {'paraids': paras, 'paravecs': para_embeddings}
     with open(outpath, 'wb') as f:
