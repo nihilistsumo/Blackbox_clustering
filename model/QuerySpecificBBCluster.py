@@ -559,7 +559,7 @@ def save_sbert_embeds(sbert_model_name, pages_path, art_qrels, paratext_file, ou
             paras += page_paras[page]
             paratexts += [paratext_dict[p] for p in page_paras[page]]
     print(str(len(paratexts))+' paras to be encoded')
-    para_embeddings = sbert.encode(paratexts)
+    para_embeddings = sbert.encode(paratexts, show_progress_bar=True)
     para_data = {'paraids': paras, 'paravecs': para_embeddings}
     with open(outpath, 'wb') as f:
         pickle.dump(para_data, f)
