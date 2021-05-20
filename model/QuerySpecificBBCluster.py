@@ -205,6 +205,50 @@ class BBClusterLossModel(nn.Module):
 
         return loss
 
+class BBClusterRNNLossModel(nn.Module):
+
+    def __init__(self, model: QuerySpecificClusterModel, device, lambda_val: float, reg_const: float):
+        super(BBClusterRNNLossModel, self).__init__()
+        self.model = model
+        self.lambda_val = lambda_val
+        self.reg = reg_const
+        self.optim = OptimCluster()
+        self.device = device
+
+    def true_adj_mat(self, label):
+        n = label.numel()
+        adj_mat = torch.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                if i == j or label[i] == label[j]:
+                    adj_mat[i][j] = 1.0
+        return adj_mat
+
+    def forward(self, query_feature: Dict[str, Tensor], passage_features: Iterable[Dict[str, Tensor]], labels: Tensor):
+
+        batch_size = labels.shape[0]
+        n = labels.shape[1]
+        ks = [torch.unique(labels[i]).numel() for i in range(batch_size)]
+        true_adjacency_mats = torch.stack([self.true_adj_mat(labels[i]) for i in range(batch_size)]).to(self.device)
+
+        psg_embeddings = torch.stack([self.model.psg_model(passages)['sentence_embedding']
+                                      for passages in passage_features], dim=1)
+        scaling_vector = torch.tensor([0])
+        # obtain the scaling vector from psg_embeddngs using RNN
+        scaled_psg_embeddings = torch.tile(scaling_vector.unsqueeze(1), (1, n, 1)) * psg_embeddings
+
+        embeddings_dist_mats = torch.stack([euclid_dist(scaled_psg_embeddings[i]) for i in range(batch_size)])
+        mean_similar_dist = (embeddings_dist_mats * true_adjacency_mats).sum() / true_adjacency_mats.sum()
+        mean_dissimilar_dist = (embeddings_dist_mats * (1.0 - true_adjacency_mats)).sum() / (
+                1 - true_adjacency_mats).sum()
+        adjacency_mats = self.optim.apply(embeddings_dist_mats, self.lambda_val, ks).to(self.device)
+
+        err_mats = adjacency_mats * (1.0 - true_adjacency_mats) + (1.0 - adjacency_mats) * true_adjacency_mats
+        err_mean = err_mats.mean(dim=0).sum()
+        loss = err_mean + self.reg * (mean_similar_dist - mean_dissimilar_dist)
+
+        return loss
+
 class QueryClusterEvaluator(SentenceEvaluator):
 
     def __init__(self, queries: List[str], passages: List[List[str]], labels: List[Tensor], use_model_device=True):
@@ -503,6 +547,21 @@ def save_squt_dataset(train_pages_file, art_qrels, top_qrels, paratext, val_samp
     print(
         'No. of data instances - Train: %5d, Val: %5d, Test: %5d' % (len(train_cluster_data), len(val_cluster_data),
                                                                      len(test_cluster_data)))
+def save_sbert_embeds(sbert_model_name, pages_path, art_qrels, paratext_file, outpath):
+    sbert = SentenceTransformer(sbert_model_name)
+    page_paras, _, _ = get_trec_dat(art_qrels, None, None)
+    paratext_dict = get_paratext_dict(paratext_file)
+    paras = []
+    paratexts = []
+    with open(pages_path, 'r') as f:
+        for l in f:
+            page = l.rstrip('\n')
+            paras += page_paras[page]
+            paratexts += [paratext_dict[p] for p in page_paras[page]]
+    para_embeddings = sbert.encode(paratexts)
+    para_data = {'paraids': paras, 'paravecs': para_embeddings}
+    with open(outpath, 'wb') as f:
+        pickle.dump(para_data, f)
 
 
 def main():

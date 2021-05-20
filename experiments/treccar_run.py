@@ -52,23 +52,25 @@ def get_pairs(cluster_data, balanced):
 
 def get_trec_dat(art_qrels, top_qrels, hier_qrels):
     page_paras = {}
-    with open(art_qrels, 'r') as f:
-        art_qrels_lines = f.readlines()
-    random.shuffle(art_qrels_lines)
-    for l in art_qrels_lines:
-        page = l.split(' ')[0]
-        para = l.split(' ')[2]
-        if page not in page_paras.keys():
-            page_paras[page] = [para]
-        else:
-            page_paras[page].append(para)
+    if art_qrels is not None:
+        with open(art_qrels, 'r') as f:
+            art_qrels_lines = f.readlines()
+        random.shuffle(art_qrels_lines)
+        for l in art_qrels_lines:
+            page = l.split(' ')[0]
+            para = l.split(' ')[2]
+            if page not in page_paras.keys():
+                page_paras[page] = [para]
+            else:
+                page_paras[page].append(para)
 
     rev_para_top = {}
-    with open(top_qrels, 'r') as f:
-        for l in f:
-            topic = l.split(' ')[0]
-            para = l.split(' ')[2]
-            rev_para_top[para] = topic
+    if top_qrels is not None:
+        with open(top_qrels, 'r') as f:
+            for l in f:
+                topic = l.split(' ')[0]
+                para = l.split(' ')[2]
+                rev_para_top[para] = topic
 
     rev_para_hier = {}
     if hier_qrels is not None:
