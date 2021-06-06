@@ -4,6 +4,7 @@ import torch
 from model.BBCluster import CustomSentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from experiments.treccar_run import prepare_cluster_data2
+from experiments.ng20_eval import rand_score
 from tqdm.autonotebook import trange
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score
@@ -17,8 +18,8 @@ def euclid_dist(x):
     dist_mat = torch.norm(x[:, None] - x, dim=2, p=2)
     return dist_mat
 
-def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anchor_ami=None):
-    rand_scores, nmi_scores, ami_scores = {}, {}, {}
+def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anchor_ami=None, anchor_urand=None):
+    rand_scores, nmi_scores, ami_scores, urand_scores = {}, {}, {}, {}
     pages, passages, labels = [], [], []
     for sample in cluster_data:
         pages.append(sample.qid)
@@ -36,20 +37,21 @@ def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anch
         rand_scores[pages[i]] = adjusted_rand_score(true_label.numpy(), cluster_label)
         nmi_scores[pages[i]] = normalized_mutual_info_score(true_label.numpy(), cluster_label)
         ami_scores[pages[i]] = adjusted_mutual_info_score(true_label.numpy(), cluster_label)
-    print('Page\t\tAdj RAND\t\tNMI\t\tAMI')
+        urand_scores[pages[i]] = rand_score(true_label.numpy(), cluster_label)
+    print('Page\t\tAdj RAND\t\tNMI\t\tAMI\t\tUnadj RAND')
     for p in rand_scores.keys():
-        print(p+'\t\t%.4f\t\t%.4f\t\t%.4f' % (rand_scores[p], nmi_scores[p], ami_scores[p]))
-    rand_arr, nmi_arr, ami_arr = (np.array(list(rand_scores.values())), np.array(list(nmi_scores.values())),
-                                    np.array(list(ami_scores.values())))
-    mean_rand, mean_nmi, mean_ami = (np.mean(rand_arr), np.mean(nmi_arr), np.mean(ami_arr))
+        print(p+'\t\t%.4f\t\t%.4f\t\t%.4f\t\tUnadj RAND' % (rand_scores[p], nmi_scores[p], ami_scores[p], urand_scores[p]))
+    rand_arr, nmi_arr, ami_arr, urand_arr = (np.array(list(rand_scores.values())), np.array(list(nmi_scores.values())),
+                                    np.array(list(ami_scores.values())), np.array(list(urand_scores.values())))
+    mean_rand, mean_nmi, mean_ami, mean_urand = (np.mean(rand_arr), np.mean(nmi_arr), np.mean(ami_arr), np.mean(urand_arr))
     if anchor_rand is not None:
-        rand_ttest, nmi_ttest, ami_ttest = (ttest_rel(anchor_rand, rand_arr), ttest_rel(anchor_nmi, nmi_arr),
-                                            ttest_rel(anchor_ami, ami_arr))
-        print('mean ARI: %.4f (%.4f), mean NMI: %.4f (%.4f), mean AMI: %.4f (%.4f)' % (mean_rand, rand_ttest[1], mean_nmi,
-                                                                                       nmi_ttest[1], mean_ami, ami_ttest[1]))
+        rand_ttest, nmi_ttest, ami_ttest, urand_ttest = (ttest_rel(anchor_rand, rand_arr), ttest_rel(anchor_nmi, nmi_arr),
+                                            ttest_rel(anchor_ami, ami_arr), ttest_rel(anchor_urand, urand_arr))
+        print('mean ARI: %.4f (%.4f), mean NMI: %.4f (%.4f), mean AMI: %.4f (%.4f), mean UARI: %.4f (%.4f)' % (mean_rand, rand_ttest[1], mean_nmi,
+                                                                                       nmi_ttest[1], mean_ami, ami_ttest[1], mean_urand, urand_ttest[1]))
     else:
-        print('mean ARI: %.4f, mean NMI: %.4f, mean AMI: %.4f' % (mean_rand, mean_nmi, mean_ami))
-    return rand_arr, nmi_arr, ami_arr
+        print('mean ARI: %.4f, mean NMI: %.4f, mean AMI: %.4f, mean UARI: %.4f' % (mean_rand, mean_nmi, mean_ami, mean_urand))
+    return rand_arr, nmi_arr, ami_arr, urand_arr
 
 parser = argparse.ArgumentParser(description='Eval treccar experiments')
 parser.add_argument('-ip', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
@@ -73,7 +75,7 @@ if level == 'top':
 else:
     test_cluster_data = test_hier_cluster_data
 tfidf = TfidfVectorizer()
-rand_scores_tf, nmi_scores_tf, ami_scores_tf = [], [], []
+rand_scores_tf, nmi_scores_tf, ami_scores_tf, urand_scores_tf = [], [], [], []
 for input_exmp in test_cluster_data:
     n = len(input_exmp.pids) - input_exmp.pids.count('dummy')
     labels = input_exmp.label[:n]
@@ -84,11 +86,13 @@ for input_exmp in test_cluster_data:
     rand_scores_tf.append(adjusted_rand_score(labels, cl_labels))
     nmi_scores_tf.append(normalized_mutual_info_score(labels, cl_labels))
     ami_scores_tf.append(adjusted_mutual_info_score(labels, cl_labels))
+    urand_scores_tf.append(rand_score(labels, cl_labels))
 mean_rand_tf = np.mean(np.array(rand_scores_tf))
 mean_nmi_tf = np.mean(np.array(nmi_scores_tf))
 mean_ami_tf = np.mean(np.array(ami_scores_tf))
+mean_urand_tf = np.mean(np.array(urand_scores_tf))
 print('TFIDF')
-print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f\n" % (mean_rand_tf, mean_nmi_tf, mean_ami_tf), flush=True)
+print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f, URAND: %.5f\n" % (mean_rand_tf, mean_nmi_tf, mean_ami_tf, mean_urand_tf), flush=True)
 
 word_embedding_model = models.Transformer(model_name)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
@@ -100,19 +104,19 @@ doc_dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_
 
 raw_model = CustomSentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
 
-anchor_rand, anchor_nmi, anchor_ami = [], [], []
+anchor_rand, anchor_nmi, anchor_ami, anchor_urand = [], [], [], []
 for i in range(len(model_paths)):
     mp = model_paths[i]
     m = CustomSentenceTransformer(mp)
     print('Model: '+mp.split('/')[len(mp.split('/'))-1])
     if i == 0:
         print('This is the anchor model for paired ttest')
-        anchor_rand, anchor_nmi, anchor_ami = get_eval_scores(m, test_cluster_data)
+        anchor_rand, anchor_nmi, anchor_ami, anchor_urand = get_eval_scores(m, test_cluster_data)
     else:
-        mean_rand, mean_nmi, mean_ami = get_eval_scores(m, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
+        mean_rand, mean_nmi, mean_ami, mean_urand = get_eval_scores(m, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
 
-mean_rand, mean_nmi, mean_ami = get_eval_scores(raw_model, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
+mean_rand, mean_nmi, mean_ami, mean_urand = get_eval_scores(raw_model, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
 
-rand_ttest_tf, nmi_ttest_tf, ami_ttest_tf = (ttest_rel(anchor_rand, rand_scores_tf), ttest_rel(anchor_nmi, nmi_scores_tf),
-                                            ttest_rel(anchor_ami, ami_scores_tf))
-print('\nTFIDF ttest pval ARI: %.5f, NMI: %.5f, AMI: %.5f' % (rand_ttest_tf[1], nmi_ttest_tf[1], ami_ttest_tf[1]))
+rand_ttest_tf, nmi_ttest_tf, ami_ttest_tf, urand_ttest_tf = (ttest_rel(anchor_rand, rand_scores_tf), ttest_rel(anchor_nmi, nmi_scores_tf),
+                                            ttest_rel(anchor_ami, ami_scores_tf), ttest_rel(anchor_urand, urand_scores_tf))
+print('\nTFIDF ttest pval ARI: %.5f, NMI: %.5f, AMI: %.5f, UARI: %.5f' % (rand_ttest_tf[1], nmi_ttest_tf[1], ami_ttest_tf[1], urand_ttest_tf[1]))
