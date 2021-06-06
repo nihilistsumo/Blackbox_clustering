@@ -4,7 +4,6 @@ import torch
 from model.BBCluster import CustomSentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from experiments.treccar_run import prepare_cluster_data2
-from experiments.ng20_eval import rand_score
 from tqdm.autonotebook import trange
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score
@@ -17,6 +16,38 @@ import torch.nn as nn
 def euclid_dist(x):
     dist_mat = torch.norm(x[:, None] - x, dim=2, p=2)
     return dist_mat
+
+# from sklearn 0.24.2 source
+def pair_confusion_matrix(labels_true, labels_pred):
+
+    labels_true, labels_pred = check_clusterings(labels_true, labels_pred)
+    n_samples = np.int64(labels_true.shape[0])
+
+    # Computation using the contingency data
+    contingency = contingency_matrix(
+        labels_true, labels_pred, sparse=True, dtype=np.int64
+    )
+    n_c = np.ravel(contingency.sum(axis=1))
+    n_k = np.ravel(contingency.sum(axis=0))
+    sum_squares = (contingency.data ** 2).sum()
+    C = np.empty((2, 2), dtype=np.int64)
+    C[1, 1] = sum_squares - n_samples
+    C[0, 1] = contingency.dot(n_k).sum() - sum_squares
+    C[1, 0] = contingency.transpose().dot(n_c).sum() - sum_squares
+    C[0, 0] = n_samples ** 2 - C[0, 1] - C[1, 0] - sum_squares
+    return C
+
+# from sklearn 0.24.2 source
+def rand_score(labels_true, labels_pred):
+
+    contingency = pair_confusion_matrix(labels_true, labels_pred)
+    numerator = contingency.diagonal().sum()
+    denominator = contingency.sum()
+
+    if numerator == denominator or denominator == 0:
+        return 1.0
+
+    return numerator / denominator
 
 def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anchor_ami=None, anchor_urand=None):
     rand_scores, nmi_scores, ami_scores, urand_scores = {}, {}, {}, {}
