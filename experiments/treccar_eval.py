@@ -73,7 +73,7 @@ def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anch
         urand_scores[pages[i]] = rand_score(true_label.numpy(), cluster_label)
     print('Page\t\tAdj RAND\t\tNMI\t\tAMI\t\tUnadj RAND')
     for p in rand_scores.keys():
-        print(p+'\t\t%.4f\t\t%.4f\t\t%.4f\t\tUnadj RAND' % (rand_scores[p], nmi_scores[p], ami_scores[p], urand_scores[p]))
+        print(p+'\t\t%.4f\t\t%.4f\t\t%.4f\t\t%.4f' % (rand_scores[p], nmi_scores[p], ami_scores[p], urand_scores[p]))
     rand_arr, nmi_arr, ami_arr, urand_arr = (np.array(list(rand_scores.values())), np.array(list(nmi_scores.values())),
                                     np.array(list(ami_scores.values())), np.array(list(urand_scores.values())))
     mean_rand, mean_nmi, mean_ami, mean_urand = (np.mean(rand_arr), np.mean(nmi_arr), np.mean(ami_arr), np.mean(urand_arr))
