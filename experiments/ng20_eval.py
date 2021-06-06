@@ -97,7 +97,7 @@ with open(test_data_path, 'rb') as f:
     test_cluster_data = pickle.load(f)
 
 tfidf = TfidfVectorizer()
-rand_scores_tf, nmi_scores_tf, ami_scores_tf = [], [], []
+rand_scores_tf, nmi_scores_tf, ami_scores_tf, urand_scores_tf = [], [], [], []
 for input_exmp in test_cluster_data:
     labels = input_exmp.label
     corpus = input_exmp.texts
@@ -107,10 +107,12 @@ for input_exmp in test_cluster_data:
     rand_scores_tf.append(adjusted_rand_score(labels, cl_labels))
     nmi_scores_tf.append(normalized_mutual_info_score(labels, cl_labels))
     ami_scores_tf.append(adjusted_mutual_info_score(labels, cl_labels))
+    urand_scores_tf.append(rand_score(labels, cl_labels))
 mean_rand_tf = np.mean(np.array(rand_scores_tf))
 mean_nmi_tf = np.mean(np.array(nmi_scores_tf))
 mean_ami_tf = np.mean(np.array(ami_scores_tf))
-print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f\n" % (mean_rand_tf, mean_nmi_tf, mean_ami_tf), flush=True)
+mean_urand_tf = np.mean(np.array(urand_scores_tf))
+print("\nRAND: %.5f, NMI: %.5f, AMI: %.5f, URAND: %.5f\n" % (mean_rand_tf, mean_nmi_tf, mean_ami_tf, mean_urand_tf), flush=True)
 
 word_embedding_model = models.Transformer(model_name)
 pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
@@ -122,7 +124,7 @@ doc_dense_model = models.Dense(in_features=pooling_model.get_sentence_embedding_
 
 raw_model = CustomSentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
 
-anchor_rand, anchor_nmi, anchor_ami = [], [], []
+anchor_rand, anchor_nmi, anchor_ami, anchor_urand = [], [], [], []
 for i in range(len(model_paths)):
     mp = model_paths[i]
     m = CustomSentenceTransformer(mp)
