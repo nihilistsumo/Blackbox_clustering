@@ -7,6 +7,8 @@ from experiments.treccar_run import prepare_cluster_data2
 from tqdm.autonotebook import trange
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, adjusted_mutual_info_score
+from sklearn.metrics.cluster import contingency_matrix
+from sklearn.metrics.cluster._supervised import check_clusterings
 import numpy as np
 from scipy.stats import ttest_rel
 from sentence_transformers import models
