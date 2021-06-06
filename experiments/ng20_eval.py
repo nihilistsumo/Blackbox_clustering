@@ -133,6 +133,6 @@ for i in range(len(model_paths)):
         print('This is the anchor model for paired ttest')
         anchor_rand, anchor_nmi, anchor_ami, anchor_urand = get_eval_scores(m, test_cluster_data)
     else:
-        rand_scores, nmi_scores, ami_scores, urand_scores = get_eval_scores(m, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
+        rand_scores, nmi_scores, ami_scores, urand_scores = get_eval_scores(m, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami, anchor_urand)
 print('Raw SBERT model')
-rand_scores, nmi_scores, ami_scores, urand_scores = get_eval_scores(raw_model, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami)
+rand_scores, nmi_scores, ami_scores, urand_scores = get_eval_scores(raw_model, test_cluster_data, anchor_rand, anchor_nmi, anchor_ami, anchor_urand)
