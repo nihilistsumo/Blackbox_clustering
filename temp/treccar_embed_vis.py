@@ -20,7 +20,7 @@ def euclid_dist(x):
     return dist_mat
 
 parser = argparse.ArgumentParser(description='Eval treccar experiments')
-parser.add_argument('-ip', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
+parser.add_argument('-ip', '--input_dir', default='~/trec_dataset')
 parser.add_argument('-lv', '--level', default='top')
 parser.add_argument('-pg', '--page_title')
 parser.add_argument('-mp', '--model_path')

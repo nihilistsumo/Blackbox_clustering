@@ -99,7 +99,7 @@ def prepare_cluster_data(train_pages_to_cluster, test_pages_to_cluster, val_samp
 
 def main():
     parser = argparse.ArgumentParser(description='Run 20 news groups experiments')
-    parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models/temp_model')
+    parser.add_argument('-out', '--output_model_path', default='~')
     parser.add_argument('-mn', '--model_name', default='distilbert-base-uncased')
     parser.add_argument('-ls', '--loss', default='bb')
     parser.add_argument('-lm', '--lambda_val', type=float, default=200.0)

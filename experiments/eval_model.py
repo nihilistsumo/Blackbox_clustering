@@ -66,7 +66,7 @@ def evaluate_ng20(model_path, test_cluster_data, gpu_eval):
 def main():
     parser = argparse.ArgumentParser(description='Evaluate saved models')
     parser.add_argument('-dt', '--data', default='trec')
-    parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
+    parser.add_argument('-in', '--input_dir', default='~/trec_dataset')
     parser.add_argument('-mp', '--model_path')
     parser.add_argument('-lv', '--level', default='t')
 

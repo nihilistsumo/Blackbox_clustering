@@ -52,31 +52,33 @@ def get_pairs(cluster_data, balanced):
 
 def get_trec_dat(art_qrels, top_qrels, hier_qrels):
     page_paras = {}
-    art_qrels_lines = []
-    with open(art_qrels, 'r') as f:
-        art_qrels_lines = f.readlines()
-    random.shuffle(art_qrels_lines)
-    for l in art_qrels_lines:
-        page = l.split(' ')[0]
-        para = l.split(' ')[2]
-        if page not in page_paras.keys():
-            page_paras[page] = [para]
-        else:
-            page_paras[page].append(para)
+    if art_qrels is not None:
+        with open(art_qrels, 'r') as f:
+            art_qrels_lines = f.readlines()
+        random.shuffle(art_qrels_lines)
+        for l in art_qrels_lines:
+            page = l.split(' ')[0]
+            para = l.split(' ')[2]
+            if page not in page_paras.keys():
+                page_paras[page] = [para]
+            else:
+                page_paras[page].append(para)
 
     rev_para_top = {}
-    with open(top_qrels, 'r') as f:
-        for l in f:
-            topic = l.split(' ')[0]
-            para = l.split(' ')[2]
-            rev_para_top[para] = topic
+    if top_qrels is not None:
+        with open(top_qrels, 'r') as f:
+            for l in f:
+                topic = l.split(' ')[0]
+                para = l.split(' ')[2]
+                rev_para_top[para] = topic
 
     rev_para_hier = {}
-    with open(hier_qrels, 'r') as f:
-        for l in f:
-            topic = l.split(' ')[0]
-            para = l.split(' ')[2]
-            rev_para_hier[para] = topic
+    if hier_qrels is not None:
+        with open(hier_qrels, 'r') as f:
+            for l in f:
+                topic = l.split(' ')[0]
+                para = l.split(' ')[2]
+                rev_para_hier[para] = topic
 
     return page_paras, rev_para_top, rev_para_hier
 
@@ -298,10 +300,10 @@ def prepare_triples_data(train_cluster_data, max_triples_per_page):
 
 def main():
     parser = argparse.ArgumentParser(description='Run treccar experiments')
-    parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
+    parser.add_argument('-in', '--input_dir', default='~/trec_dataset')
     parser.add_argument('-tin', '--train_input', default='train/base.train.cbor')
     parser.add_argument('-tp', '--train_paratext', default='train/train_paratext/train_paratext.tsv')
-    parser.add_argument('-out', '--output_model_path', default='/home/sk1105/sumanta/bb_cluster_models/temp_model')
+    parser.add_argument('-out', '--output_model_path', default='~')
     parser.add_argument('-mn', '--model_name', default='distilbert-base-uncased')
     parser.add_argument('-ls', '--loss', default='bb')
     parser.add_argument('-lm', '--lambda_val', type=float, default=200.0)
