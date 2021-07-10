@@ -76,7 +76,7 @@ parser.add_argument('-nd', '--num_doc', type=int, default=30)
 parser.add_argument('-vs', '--val_samples', type=int, default=20)
 
 ### TRECCAR only ###
-parser.add_argument('-in', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
+parser.add_argument('-in', '--input_dir', default='~/trec_dataset')
 parser.add_argument('-tin', '--train_input', default='train/base.train.cbor')
 parser.add_argument('-tp', '--train_paratext', default='train/train_paratext/train_paratext.tsv')
 parser.add_argument('-lv', '--level', default='top')

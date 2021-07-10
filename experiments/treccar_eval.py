@@ -87,7 +87,7 @@ def get_eval_scores(model, cluster_data, anchor_rand=None, anchor_nmi=None, anch
     return rand_arr, nmi_arr, ami_arr, urand_arr
 
 parser = argparse.ArgumentParser(description='Eval treccar experiments')
-parser.add_argument('-ip', '--input_dir', default='/home/sk1105/sumanta/trec_dataset')
+parser.add_argument('-ip', '--input_dir', default='~/trec_dataset')
 parser.add_argument('-rm', '--raw_model_name', default='distilbert-base-uncased')
 parser.add_argument('-lv', '--level', default='top')
 parser.add_argument('-mp', '--model_paths', nargs='+')
