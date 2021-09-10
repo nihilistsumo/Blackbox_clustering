@@ -8,7 +8,7 @@ import sys
 def do_test(pt_file, model_name, n):
     text = []
     i = 0
-    with open(pt_file, 'r') as f:
+    with open(pt_file, 'r', encoding='utf8') as f:
         for l in f:
             text.append(l.split('\t')[1])
             i+=1
@@ -41,5 +41,6 @@ def do_test(pt_file, model_name, n):
         psg_emb = psg_model(pfet)['sentence_embedding']
         psg_emb.to(torch.device('cpu'))
         psg_embs.append(psg_emb)
+    print(psg_embs[:10])
 
 do_test(sys.argv[1], sys.argv[2], int(sys.argv[3]))
