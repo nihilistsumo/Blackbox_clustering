@@ -22,6 +22,7 @@ from util.Data import InputTRECCARExample
 from util.Evaluator import ClusterEvaluator
 from model.BBCluster import BBClusterLossModel, BBSpectralClusterLossModel, CustomSentenceTransformer, DBCLossModel, \
     BinaryLoss, BBClusterLossReluRegModel
+import GPUtil
 import argparse
 random.seed(42)
 torch.manual_seed(42)
@@ -55,6 +56,7 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluste
 
     model = CustomSentenceTransformer(modules=[word_embedding_model, pooling_model, doc_dense_model])
     # model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+    GPUtil.showUtilization()
     if loss_name == 'bbspec':
         loss_model = BBSpectralClusterLossModel(model=model, device=device,
                                                 lambda_val=config_dict.get('lambda_val', lambda_val),
@@ -66,15 +68,17 @@ def run_fixed_lambda_bbcluster(train_cluster_data, val_cluster_data, test_cluste
     # reg_loss_model = ClusterDistLossModel(model=model)
 
     train_dataloader = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
+    GPUtil.showUtilization()
     # train_dataloader2 = DataLoader(train_cluster_data, shuffle=True, batch_size=train_batch_size)
     evaluator = ClusterEvaluator.from_input_examples(val_cluster_data, use_model_device)
     test_evaluator = ClusterEvaluator.from_input_examples(test_cluster_data, use_model_device)
-
+    GPUtil.showUtilization()
     warmup_steps = int(len(train_dataloader) * num_epochs * warmup_frac)  # 10% of train data
 
     print("Raw BERT embedding performance")
     model.to(device)
     evaluator(model, output_path)
+    GPUtil.showUtilization()
 
     # Train the model
     model.fit(train_objectives=[(train_dataloader, loss_model)],

@@ -13,6 +13,7 @@ from typing import Iterable, Dict, Tuple, Type, Callable
 from sklearn.cluster import AgglomerativeClustering, SpectralClustering
 import os
 from tqdm.autonotebook import trange
+import GPUtil
 from clearml import Logger
 
 class CustomSentenceTransformer(SentenceTransformer):
@@ -42,6 +43,7 @@ class CustomSentenceTransformer(SentenceTransformer):
             scaler = torch.cuda.amp.GradScaler()
 
         self.to(self._target_device)
+        GPUtil.showUtilization()
 
         if output_path is not None:
             os.makedirs(output_path, exist_ok=True)
