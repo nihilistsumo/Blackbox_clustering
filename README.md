@@ -12,10 +12,7 @@ Existing supervised models for text clustering find it difficult to directly opt
 ## Important parameters
 - -in: Path to input directory, only used for TRECCAR experiments
 - -tin: Prefix of the training files 
-- -tp: A tab separated file with raw text for each passage in the following format
-  passage_ID1 passage_text1
-  passage_ID2 passage_text2
-  ...
+- -tp: A tab separated file with raw text for each passage in the following format: passage_ID1 passage_text1
 - -out: Path where the trained model will be saved
 - -mn: Name of / Path to the sentence-bert embedding model
 - -ls: (Experimental) Choice between spectral clustering loss ('bbspec') or COB loss ('bb')
